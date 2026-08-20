@@ -1,0 +1,66 @@
+{
+  "pages": [
+    { "id": "pantallas", "name": "Pantallas del CRM" },
+    { "id": "sistema", "name": "Arquitectura y datos" }
+  ],
+  "artboards": [
+    { "file": "Conversacion.dc.html", "title": "Bandeja de conversaciones", "page": "pantallas", "x": 0, "y": 0, "w": 1440, "h": 1000 },
+    { "file": "Main.dc.html", "title": "Pipeline de oportunidades", "page": "pantallas", "x": 1520, "y": 0, "w": 1440, "h": 980 },
+    { "file": "Cliente360.dc.html", "title": "Ficha del cliente", "page": "pantallas", "x": 0, "y": 1120, "w": 1440, "h": 1120 },
+    { "file": "Cierre.dc.html", "title": "Cierre y puente al ERP", "page": "pantallas", "x": 1520, "y": 1120, "w": 1440, "h": 900 },
+    { "file": "Dashboard.dc.html", "title": "Reportes", "page": "pantallas", "x": 0, "y": 2360, "w": 1440, "h": 1000 },
+    { "file": "Arquitectura.dc.html", "title": "Límites del sistema", "page": "sistema", "x": 0, "y": 0, "w": 1400, "h": 860 },
+    { "file": "Modelo.dc.html", "title": "Modelo de datos", "page": "sistema", "x": 1480, "y": 0, "w": 1400, "h": 1120 }
+  ],
+  "annotations": [
+    {
+      "id": "bandeja-decision",
+      "page": "pantallas",
+      "x": 0,
+      "y": -560,
+      "w": 660,
+      "text": "La bandeja se lee como una app de mensajería, no como una tabla de administración: lista de conversaciones, burbujas, adjuntos en línea y caja de redacción abajo.\n\nLo que NO se copia es la identidad de WhatsApp: su verde de marca, su fondo y sus indicadores son diseño de Meta. Además, un panel interno que imita pixel a pixel WhatsApp confunde a quien atiende sobre qué app está usando, y hereda cosas que aquí no aplican (no hay «en línea»; hay «atendido por IA»).\n\nLa paleta es la del propio sistema. El azul distingue lo que respondió la IA, el verde lo que respondió una persona."
+    },
+    {
+      "id": "voz-e-imagen",
+      "page": "pantallas",
+      "x": 700,
+      "y": -560,
+      "w": 660,
+      "text": "La nota de voz se escucha en la propia burbuja: botón de reproducción, onda con avance, duración y velocidad. Debajo va la transcripción, que es lo que permite buscar dentro de un audio y lo que necesita el agente para poder responderlo.\n\nLas llamadas viven en el mismo hilo, con su grabación y la transcripción por turnos.\n\nOJO: hoy nada de esto se guarda. Una nota de voz entra registrada solo como «tipo audio» con el contenido vacío. El panel lateral marca en rojo las cuatro piezas que faltan construir."
+    },
+    {
+      "id": "datos-reales",
+      "page": "pantallas",
+      "x": 1400,
+      "y": -560,
+      "w": 620,
+      "text": "Clientes, productos e importes salen del dataset de mensajes reales generado para medir el enrutamiento: distribuidora de abarrotes, vendedores que surten tiendas.\n\nLos totales de cada columna del tablero se calculan de las tarjetas que se ven encima, y los avisos de «sin movimiento» se derivan de las horas: un pie que no cuadra con lo que hay arriba destruye la confianza en el tablero entero."
+    },
+    {
+      "id": "cierre-critico",
+      "page": "pantallas",
+      "x": 1520,
+      "y": 2100,
+      "w": 620,
+      "text": "El artboard del cierre es el que hay que revisar con calma.\n\nEl brief pide tres garantías (no duplicar pedidos, no quedar ganada sin pedido, reintentos seguros) pero su código de ejemplo no las cumple. Aquí están dibujadas como estados visibles para quien opera: cambia el selector de arriba para ver los tres."
+    },
+    {
+      "id": "una-puerta",
+      "page": "sistema",
+      "x": 0,
+      "y": -420,
+      "w": 620,
+      "text": "La decisión que sostiene todo el diseño: una sola puerta hacia el ERP, y se abre en un solo momento.\n\nEscritura al ganar, con clave de idempotencia. Lectura en vivo para mostrar pedidos, sin replicarlos. Nada más cruza."
+    },
+    {
+      "id": "correcciones-brief",
+      "page": "sistema",
+      "x": 1480,
+      "y": -420,
+      "w": 700,
+      "text": "Seis puntos del modelo del brief no se pueden implementar tal cual: Customer duplica el Contact que ya existe, la referencia a auth.User rompe la migración, la conversación de origen es texto libre en vez de clave ajena, el cierre no es idempotente, buscar la etapa ganada revienta con cero o con dos, y el medio de los mensajes (voz, foto, documento) no se guarda en ninguna parte.\n\nEstán en la tabla roja del artboard, con la corrección propuesta para cada uno."
+    }
+  ],
+  "launch": { "view": "canvas", "page": "pantallas" }
+}

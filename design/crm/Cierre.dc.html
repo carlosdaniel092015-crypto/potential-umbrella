@@ -1,0 +1,243 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body {
+      margin: 0;
+      font-family: "Segoe UI", system-ui, Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 0.875rem;
+      color: #333;
+      background: #fff;
+    }
+    a { color: #417893; text-decoration: none; }
+    a:hover { color: #036; }
+  </style>
+</helmet>
+
+<div style="min-height: 900px; background: #fff; display: flex; flex-direction: column">
+
+  <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 40px; background: #417690; color: #ffc">
+    <span style="font-size: 1.125rem; font-weight: 300; color: #f5dd5d">Plataforma IA WhatsApp</span>
+    <span style="font-size: 0.75rem; color: #fff">M. Robles</span>
+  </div>
+
+  <div style="padding: 10px 40px; background: #264b5d; color: #c4dce8; font-size: 0.875rem">
+    <a href="#" style="color: #fff">Inicio</a><span style="padding: 0 4px">›</span>
+    <a href="#" style="color: #fff">CRM</a><span style="padding: 0 4px">›</span>
+    <a href="#" style="color: #fff">Oportunidades</a><span style="padding: 0 4px">›</span>
+    <span>#1184 Mini Súper Don Beto</span>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 20px; padding: 20px 40px 40px">
+
+    <div style="display: flex; flex-direction: column; gap: 4px">
+      <h1 style="margin: 0; font-size: 1.25rem; font-weight: 300; color: #000">Cerrar oportunidad #1184</h1>
+      <p style="margin: 0; font-size: 0.8125rem; color: #666; max-width: 70ch">
+        Ganar una oportunidad es lo único que hace que el CRM le hable al ERP. El pedido nace en Odoo
+        aquí y en ningún otro punto del sistema.
+      </p>
+    </div>
+
+    <!-- El mensaje del panel cambia según el resultado del puente -->
+    <div style="display: flex; align-items: flex-start; gap: 8px; padding: 10px 14px; background: {{aviso.fondo}}; border: 1px solid {{aviso.borde}}; color: {{aviso.color}}; font-size: 0.8125rem; line-height: 1.15rem">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 1px" aria-hidden="true">
+        <sc-if value="{{aviso.esExito}}" hint-placeholder-val="{{true}}">
+          <path d="M20 6 9 17l-5-5"></path>
+        </sc-if>
+        <sc-if value="{{aviso.esError}}" hint-placeholder-val="{{false}}">
+          <circle cx="12" cy="12" r="9"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path>
+        </sc-if>
+        <sc-if value="{{aviso.esInfo}}" hint-placeholder-val="{{false}}">
+          <circle cx="12" cy="12" r="9"></circle><path d="M12 8h.01"></path><path d="M11 12h1v4h1"></path>
+        </sc-if>
+      </svg>
+      <div style="display: flex; flex-direction: column; gap: 3px">
+        <strong style="font-weight: 500">{{aviso.titulo}}</strong>
+        <span>{{aviso.detalle}}</span>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 30px; align-items: start">
+
+      <!-- Formulario de cierre, con la anatomía de un form de Django Admin -->
+      <div style="display: flex; flex-direction: column; gap: 0">
+        <div style="padding: 8px; background: #417690; color: #fff; font-size: 0.8125rem; font-weight: 400">Cierre</div>
+
+        <div style="display: flex; flex-direction: column; gap: 0; border: 1px solid #e8e8e8; border-top: none">
+          <sc-for list="{{campos}}" as="c" hint-placeholder-count="4">
+            <div style="display: flex; flex-direction: column; gap: 5px; padding: 10px 12px; border-bottom: 1px solid #e8e8e8">
+              <label style="font-size: 0.8125rem; font-weight: 500; color: #333">{{c.etiqueta}}</label>
+              <div style="padding: 6px 8px; background: {{c.fondo}}; border: 1px solid #ccc; border-radius: 4px; font-size: 0.8125rem; color: #333">{{c.valor}}</div>
+              <sc-if value="{{c.ayuda}}" hint-placeholder-val="{{true}}">
+                <span style="font-size: 0.6875rem; color: #666">{{c.ayuda}}</span>
+              </sc-if>
+            </div>
+          </sc-for>
+
+          <!-- Motivo de pérdida: obligatorio solo al perder, y su texto cambia
+               según en qué punto quedó el cierre. -->
+          <div style="display: flex; flex-direction: column; gap: 5px; padding: 10px 12px; border-bottom: 1px solid #e8e8e8; background: #f8f8f8">
+            <label style="font-size: 0.8125rem; font-weight: 500; color: #666">Motivo de pérdida</label>
+            <div style="padding: 6px 8px; background: #e4e4e4; border: 1px solid #ccc; border-radius: 4px; font-size: 0.8125rem; color: #666">{{motivoPerdida}}</div>
+            <span style="font-size: 0.6875rem; color: #666">Obligatorio únicamente si la etapa está marcada como perdida.</span>
+          </div>
+
+          <!-- Fila de acciones: patrón submit-row -->
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px; background: #f8f8f8">
+            <a href="#" style="font-size: 0.8125rem">Volver al tablero</a>
+            <div style="display: flex; gap: 8px; align-items: center">
+              <span style="padding: 10px 15px; background: {{botonPerder.fondo}}; color: {{botonPerder.color}}; border-radius: 4px; font-size: 0.8125rem">Marcar perdida</span>
+              <span style="padding: 10px 15px; background: {{boton.fondo}}; color: #fff; border-radius: 4px; font-size: 0.8125rem; font-weight: 500">{{boton.texto}}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bitácora del puente: qué pasó, en orden, con el estado real -->
+      <div style="display: flex; flex-direction: column; gap: 30px">
+
+        <div style="display: flex; flex-direction: column; gap: 0">
+          <div style="padding: 8px; background: #417690; color: #fff; font-size: 0.8125rem; font-weight: 400">Puente hacia Odoo</div>
+          <div style="display: flex; flex-direction: column; gap: 0; border: 1px solid #e8e8e8; border-top: none">
+            <sc-for list="{{pasos}}" as="p" hint-placeholder-count="4">
+              <div style="display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border-bottom: 1px solid #e8e8e8">
+                <span style="flex-shrink: 0; width: 18px; height: 18px; margin-top: 1px; border-radius: 50%; background: {{p.fondo}}; color: {{p.color}}; display: inline-flex; align-items: center; justify-content: center; font-size: 0.625rem; font-weight: 600">{{p.marca}}</span>
+                <div style="display: flex; flex-direction: column; gap: 2px">
+                  <span style="font-size: 0.8125rem; color: #333">{{p.texto}}</span>
+                  <span style="font-size: 0.6875rem; color: #666; font-family: ui-monospace, monospace">{{p.dato}}</span>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <!-- La garantía de no duplicar, visible para quien opera -->
+        <div style="display: flex; flex-direction: column; gap: 0">
+          <div style="padding: 8px; background: #417690; color: #fff; font-size: 0.8125rem; font-weight: 400">Garantías del cierre</div>
+          <div style="display: flex; flex-direction: column; gap: 8px; padding: 12px; border: 1px solid #e8e8e8; border-top: none; font-size: 0.75rem; color: #444; line-height: 1.1rem">
+            <div style="display: flex; align-items: flex-start; gap: 8px">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1b6b4f" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 1px" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
+              <span>La clave de idempotencia <span style="font-family: ui-monospace, monospace">OPP-1184</span> viaja como referencia del pedido: si el proceso se reintenta, Odoo devuelve el pedido que ya existe en lugar de crear otro.</span>
+            </div>
+            <div style="display: flex; align-items: flex-start; gap: 8px">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1b6b4f" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 1px" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
+              <span>La etapa pasa a ganada <em>después</em> de que el pedido existe. Si Odoo no responde, la oportunidad se queda en negociación con el intento registrado.</span>
+            </div>
+            <div style="display: flex; align-items: flex-start; gap: 8px">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1b6b4f" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 1px" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
+              <span>Solo este puente habla con el ERP. El agente de IA no tiene credenciales de Odoo.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"resultado":{"editor":"enum","options":["Pedido creado","Odoo sin responder","Reintento del mismo cierre"],"default":"Pedido creado","section":"Estado del puente"}}'>
+class Component extends DCLogic {
+  renderVals() {
+    // Claves sin acentos: si el archivo se reguarda en otra codificación, una
+    // clave acentuada dejaría de coincidir y el artboard caería al escenario
+    // por defecto sin avisar.
+    const resultado = this.props.resultado ?? 'Pedido creado';
+
+    const VERDE = { fondo: '#dfd', borde: '#b8e0b8', color: '#1b3d1b', esExito: true, esError: false, esInfo: false };
+    const ROJO = { fondo: '#ffefef', borde: '#f0c8c8', color: '#ba2121', esExito: false, esError: true, esInfo: false };
+    const AMBAR = { fondo: '#ffc', borde: '#e6d98a', color: '#4a4300', esExito: false, esError: false, esInfo: true };
+
+    const paso = (marca, texto, dato, tono) => {
+      const tonos = {
+        ok: { fondo: '#dfd', color: '#1b6b4f' },
+        error: { fondo: '#ffefef', color: '#ba2121' },
+        espera: { fondo: '#f8f8f8', color: '#666' },
+        aviso: { fondo: '#ffc', color: '#4a4300' },
+      };
+      return { marca, texto, dato, ...tonos[tono] };
+    };
+
+    const PERDER_ACTIVO = { fondo: '#747474', color: '#fff' };
+    const PERDER_INERTE = { fondo: '#e4e4e4', color: '#999' };
+
+    const escenarios = {
+      'Pedido creado': {
+        motivoPerdida: 'No aplica: la oportunidad se ganó',
+        botonPerder: PERDER_INERTE,
+        aviso: {
+          ...VERDE,
+          titulo: 'Oportunidad ganada y pedido creado en Odoo',
+          detalle: 'Pedido SO-44902 por $14,200. La ficha del cliente ya lo muestra al consultar el ERP.',
+        },
+        boton: { fondo: '#205067', texto: 'Ganada · pedido creado' },
+        campos: [
+          { etiqueta: 'Cliente', valor: 'Mini Súper Don Beto · +52 1 555 000 1111', fondo: '#f8f8f8', ayuda: 'Ficha del CRM. El ERP recibe solo lo mínimo para facturar.' },
+          { etiqueta: 'Etapa destino', valor: 'Ganado', fondo: '#fff', ayuda: '' },
+          { etiqueta: 'Líneas del pedido', valor: '10 galones aceite 1-2-3 · 5 cajas mayonesa chica · 2 costales frijol negro', fondo: '#fff', ayuda: 'Confirmadas con el cliente en la conversación.' },
+          { etiqueta: 'Importe', valor: '$14,200.00 MXN', fondo: '#fff', ayuda: '' },
+        ],
+        pasos: [
+          paso('1', 'Etapa reclamada para cierre', 'estado: cerrando · una sola ejecución', 'ok'),
+          paso('2', 'Cliente resuelto en el ERP', 'res.partner 8842 · vinculado', 'ok'),
+          paso('3', 'Pedido creado', 'sale.order SO-44902 · ref OPP-1184', 'ok'),
+          paso('4', 'Etapa confirmada como ganada', 'cerrada 20 ago 2026 11:20', 'ok'),
+        ],
+      },
+      'Odoo sin responder': {
+        motivoPerdida: 'No aplica: el cierre no se completó',
+        botonPerder: PERDER_ACTIVO,
+        aviso: {
+          ...ROJO,
+          titulo: 'El pedido no se pudo crear: Odoo no responde',
+          detalle: 'La oportunidad sigue en Negociación. No quedó ganada sin pedido, y nadie tiene que adivinar si el pedido existe.',
+        },
+        boton: { fondo: '#ba2121', texto: 'Reintentar cierre' },
+        campos: [
+          { etiqueta: 'Cliente', valor: 'Mini Súper Don Beto · +52 1 555 000 1111', fondo: '#f8f8f8', ayuda: 'Ficha del CRM. El ERP recibe solo lo mínimo para facturar.' },
+          { etiqueta: 'Etapa actual', valor: 'Negociación · sin cambios', fondo: '#ffefef', ayuda: 'La etapa no avanza mientras el pedido no exista.' },
+          { etiqueta: 'Líneas del pedido', valor: '10 galones aceite 1-2-3 · 5 cajas mayonesa chica · 2 costales frijol negro', fondo: '#fff', ayuda: '' },
+          { etiqueta: 'Importe', valor: '$14,200.00 MXN', fondo: '#fff', ayuda: '' },
+        ],
+        pasos: [
+          paso('1', 'Etapa reclamada para cierre', 'estado: cerrando', 'ok'),
+          paso('2', 'Cliente resuelto en el ERP', 'res.partner 8842 · vinculado', 'ok'),
+          paso('3', 'Creación del pedido fallida', 'tiempo de espera agotado · 3 intentos', 'error'),
+          paso('4', 'Etapa devuelta a Negociación', 'intento registrado · reintento disponible', 'aviso'),
+        ],
+      },
+      'Reintento del mismo cierre': {
+        motivoPerdida: 'No aplica: la oportunidad ya está ganada',
+        botonPerder: PERDER_INERTE,
+        aviso: {
+          ...AMBAR,
+          titulo: 'Este cierre ya se había ejecutado',
+          detalle: 'Se reutilizó el pedido SO-44902 en lugar de crear otro. Un doble clic o un reintento del proceso no genera un pedido duplicado.',
+        },
+        boton: { fondo: '#747474', texto: 'Ya cerrada' },
+        campos: [
+          { etiqueta: 'Cliente', valor: 'Mini Súper Don Beto · +52 1 555 000 1111', fondo: '#f8f8f8', ayuda: '' },
+          { etiqueta: 'Etapa actual', valor: 'Ganado · cerrada hoy 17:04', fondo: '#f8f8f8', ayuda: '' },
+          { etiqueta: 'Pedido asociado', valor: 'SO-44902', fondo: '#f8f8f8', ayuda: 'Referencia OPP-1184: la misma clave devuelve el mismo pedido.' },
+          { etiqueta: 'Importe', valor: '$14,200.00 MXN', fondo: '#f8f8f8', ayuda: '' },
+        ],
+        pasos: [
+          paso('i', 'Reclamo de etapa rechazado', 'ya estaba en ganado', 'aviso'),
+          paso('=', 'Pedido existente reconocido', 'ref OPP-1184 → SO-44902', 'ok'),
+          paso('·', 'Sin escritura en el ERP', 'ninguna llamada de creación', 'espera'),
+          paso('·', 'Sin cambios en el CRM', 'idempotente', 'espera'),
+        ],
+      },
+    };
+
+    return escenarios[resultado] ?? escenarios['éxito'];
+  }
+}
+</script>
+</body>
+</html>

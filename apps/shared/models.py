@@ -123,12 +123,30 @@ class Message(models.Model):
     # Agente que generó/atendió este mensaje (el enrutamiento es por mensaje, no
     # se congela a nivel de conversación — hallazgo ERD de la revisión).
     agent = models.ForeignKey(Agent, on_delete=models.SET_NULL, null=True, blank=True)
+    # Un saliente apunta al entrante que responde. Sin esta atadura no se puede
+    # saber si un mensaje CONCRETO ya fue contestado: la comprobación anterior
+    # ("¿hay alguna respuesta posterior a este id?") descartaba en silencio los
+    # mensajes 2..N de cada ráfaga, porque la respuesta al primero ya era
+    # posterior a todos ellos.
+    reply_to = models.ForeignKey(
+        "self", on_delete=models.SET_NULL, null=True, blank=True, related_name="replies"
+    )
     metadata = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ["created_at"]
         indexes = [models.Index(fields=["conversation", "created_at"])]
+        constraints = [
+            # Como máximo una respuesta por mensaje entrante. Crear la fila ES
+            # el derecho a responder: si dos ejecuciones concurrentes llegan
+            # aquí, la segunda choca con el índice y no le escribe al cliente.
+            models.UniqueConstraint(
+                fields=["reply_to"],
+                condition=models.Q(direction=MessageDirection.OUTBOUND),
+                name="una_respuesta_por_mensaje_entrante",
+            )
+        ]
 
     def __str__(self) -> str:
         return f"[{self.direction}] {self.content[:40]}"

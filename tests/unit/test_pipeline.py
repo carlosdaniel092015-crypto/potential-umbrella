@@ -48,8 +48,13 @@ class FakeConversationService:
         self.marks.append(("claim", message_id, self.claim_ok))
         return self.claim_ok
 
-    async def has_sent_reply_after(self, conversation_id: int, message_id: int) -> bool:
-        return self.ya_respondido
+    async def claim_outbound(
+        self, inbound_id: int, conversation_id: int, content: str, agent_id=None
+    ) -> tuple[int, bool]:
+        self.outbound.append(
+            {"content": content, "agent_id": agent_id, "reply_to": inbound_id}
+        )
+        return 20, self.ya_respondido
 
     async def load_work(self, message_id: int) -> InboundWork | None:
         return InboundWork(
@@ -63,10 +68,6 @@ class FakeConversationService:
     async def recent_history(self, conversation_id, limit=10, exclude_message_id=0):
         self.marks.append(("history", conversation_id, limit, exclude_message_id))
         return self.history
-
-    async def register_outbound(self, conversation_id, content, agent_id=None) -> int:
-        self.outbound.append({"content": content, "agent_id": agent_id})
-        return 20
 
     async def mark_outbound_sent(self, message_id, external_id):
         self.marks.append(("sent", message_id, external_id))
@@ -140,7 +141,10 @@ async def test_flujo_feliz_envia_y_marca_procesado():
     assert marcado_enviado[2].startswith("fake-out-")
     # El agente queda registrado en el mensaje entrante y en el saliente.
     assert ("processed", 10, 1) in conversations.marks
-    assert conversations.outbound == [{"content": "¡Anotado tu pedido!", "agent_id": 1}]
+    # La respuesta queda atada al entrante que la originó.
+    assert conversations.outbound == [
+        {"content": "¡Anotado tu pedido!", "agent_id": 1, "reply_to": 10}
+    ]
 
 
 async def test_duplicado_no_reprocesa_ni_envia():
@@ -166,7 +170,8 @@ async def test_reclamo_perdido_es_duplicado_en_curso():
 
 
 async def test_no_reenvia_si_ya_habia_respuesta_enviada():
-    # Reintento tras un fallo posterior al envío: el cliente no recibe doble.
+    # Reintento del MISMO mensaje tras un fallo posterior al envío: el cliente
+    # no recibe la respuesta dos veces.
     pipeline, conversations, messaging, _ = build_pipeline(
         conversations=FakeConversationService(ya_respondido=True)
     )
@@ -174,7 +179,7 @@ async def test_no_reenvia_si_ya_habia_respuesta_enviada():
 
     assert result.status == "already_replied"
     assert messaging.sent == []
-    assert ("processed", 10, None) in conversations.marks
+    assert ("processed", 10, 1) in conversations.marks
 
 
 async def test_historial_llega_al_modelo():

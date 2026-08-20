@@ -26,6 +26,7 @@ Cada decisión resuelve una ambigüedad o contradicción detectada en la
 | D-18 | **Fail-fast de configuración** | `SECRET_KEY` sin default compartido: `prod.py` aborta si falta o si es la de desarrollo, y `ENVIRONMENT=production` con settings `.dev` también aborta. `/internal/*` exige token fuera de dev. | Implementado |
 | D-19 | **Semántica de errores del webhook** | Fallo antes o durante el envío → 500 para que YCloud reintente. Fallo **después** de un envío exitoso → se registra como crítico y se responde 200: propagar el error haría reenviar un mensaje ya entregado. El mensaje queda en `PROCESSING` para conciliación manual. | Implementado |
 | D-20 | **Límite de cuerpo antes de bufferizar** | Rechazo por `Content-Length` y corte durante el streaming: `request.body()` no tiene tope y permitía agotar memoria sin autenticarse. | Implementado |
+| D-27 | **Una respuesta por mensaje, atada a él** | `Message.reply_to` apunta al entrante que se contesta, con restricción única sobre las respuestas. Crear la fila **es** el derecho a responder: dos ejecuciones del mismo mensaje no escriben dos veces, y otro mensaje de la misma ráfaga sí recibe la suya. Sustituye la guarda «¿hay respuesta posterior a este id?», que descartaba en silencio los mensajes 2..N de cada ráfaga en el camino de producción. | Implementado |
 
 ## Matriz de versiones congelada (uv.lock)
 
@@ -43,7 +44,7 @@ celery 5.6 · redis-py 6.4 · psycopg 3.3 · pydantic 2.13 · gunicorn 26.1
 
 ## Verificación (bucle ejecutado, no inferido)
 
-- **78 tests** (57 unitarios + 21 de integración) en verde, 100 % offline.
+- **90 tests** (57 unitarios + 33 de integración) en verde, 100 % offline.
 - **93 %** de cobertura de ramas.
 - **mypy** limpio en 58 archivos con el plugin de django-stubs.
 - **Ejecución real** con base limpia: salud OK, texto → `processed/ventas`, duplicado → `duplicate`, audio → mensaje de capacidad, callback de estado → `ignored`, JSON roto → 400, cuerpo de 300 KB → 413, webhook de voz → 501. Estado final en base sin mensajes zombi.

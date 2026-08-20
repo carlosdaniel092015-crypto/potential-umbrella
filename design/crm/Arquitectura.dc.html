@@ -1,0 +1,178 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body {
+      margin: 0;
+      font-family: "Segoe UI", system-ui, Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 0.875rem;
+      color: #333;
+      background: #fff;
+    }
+    a { color: #417893; text-decoration: none; }
+    a:hover { color: #036; }
+  </style>
+</helmet>
+
+<div style="min-height: 860px; background: #fff; display: flex; flex-direction: column; gap: 24px; padding: 32px 40px 40px">
+
+  <div style="display: flex; flex-direction: column; gap: 6px">
+    <span style="font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.5px; color: #666">Límites del sistema</span>
+    <h1 style="margin: 0; font-size: 1.5rem; font-weight: 300; color: #000">Quién es dueño de qué</h1>
+    <p style="margin: 0; max-width: 88ch; font-size: 0.875rem; line-height: 1.3rem; color: #444">
+      El CRM es dueño de la relación con el cliente y del pipeline. El ERP es dueño de la operación.
+      Entre los dos hay una sola puerta, y se abre en un solo momento: cuando una oportunidad se gana.
+    </p>
+  </div>
+
+  <!-- Dos dominios, una puerta -->
+  <div style="display: grid; grid-template-columns: minmax(0, 1fr) 132px minmax(0, 1fr); gap: 0; align-items: stretch">
+
+    <!-- Dominio propio -->
+    <div style="display: flex; flex-direction: column; gap: 0; border: 2px solid #417690">
+      <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 8px 12px; background: #417690; color: #fff">
+        <span style="font-size: 0.8125rem">Plataforma propia · Django + Postgres</span>
+        <span style="font-size: 0.6875rem; color: #c4dce8; text-transform: uppercase; letter-spacing: 0.5px">fuente de verdad</span>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 10px; padding: 14px">
+        <sc-for list="{{propio}}" as="p" hint-placeholder-count="5">
+          <div style="display: flex; flex-direction: column; gap: 3px; padding: 10px 12px; background: {{p.fondo}}; border: 1px solid #e8e8e8; border-left: 3px solid #417690">
+            <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px">
+              <span style="font-size: 0.8125rem; font-weight: 500; color: #000">{{p.nombre}}</span>
+              <span style="font-size: 0.6875rem; color: #666; font-family: ui-monospace, monospace">{{p.donde}}</span>
+            </div>
+            <span style="font-size: 0.75rem; color: #444; line-height: 1.05rem">{{p.que}}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <!-- La puerta -->
+    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 0 10px">
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 8px; background: #ffc; border: 1px solid #e6d98a; text-align: center">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4a4300" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4 12h13"></path><path d="M13 6l6 6-6 6"></path>
+        </svg>
+        <span style="font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.5px; color: #4a4300; line-height: 0.9rem">Solo al<br>ganar</span>
+      </div>
+      <div style="font-size: 0.6875rem; color: #666; text-align: center; line-height: 0.95rem">
+        crear pedido<br>
+        <span style="font-family: ui-monospace, monospace">ref OPP-1184</span>
+      </div>
+      <div style="width: 1px; flex-grow: 1; background: #e8e8e8"></div>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 8px; background: #ccefff; border: 1px solid #a9dcf5; text-align: center">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#264b5d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M20 12H7"></path><path d="M11 6l-6 6 6 6"></path>
+        </svg>
+        <span style="font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.5px; color: #264b5d; line-height: 0.9rem">Lectura<br>en vivo</span>
+      </div>
+      <div style="font-size: 0.6875rem; color: #666; text-align: center; line-height: 0.95rem">
+        pedidos del cliente<br>sin replicar
+      </div>
+    </div>
+
+    <!-- Dominio del ERP -->
+    <div style="display: flex; flex-direction: column; gap: 0; border: 2px solid #747474">
+      <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 8px 12px; background: #747474; color: #fff">
+        <span style="font-size: 0.8125rem">Odoo · ERP</span>
+        <span style="font-size: 0.6875rem; color: #e4e4e4; text-transform: uppercase; letter-spacing: 0.5px">operación</span>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 10px; padding: 14px">
+        <sc-for list="{{erp}}" as="e" hint-placeholder-count="4">
+          <div style="display: flex; flex-direction: column; gap: 3px; padding: 10px 12px; background: {{e.fondo}}; border: 1px solid #e8e8e8; border-left: 3px solid #747474">
+            <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px">
+              <span style="font-size: 0.8125rem; font-weight: 500; color: #000">{{e.nombre}}</span>
+              <span style="font-size: 0.6875rem; color: #666; font-family: ui-monospace, monospace">{{e.donde}}</span>
+            </div>
+            <span style="font-size: 0.75rem; color: #444; line-height: 1.05rem">{{e.que}}</span>
+          </div>
+        </sc-for>
+
+        <div style="display: flex; align-items: flex-start; gap: 8px; margin-top: 4px; padding: 10px 12px; background: #ffefef; border: 1px solid #f0c8c8; font-size: 0.75rem; color: #ba2121; line-height: 1.05rem">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 1px" aria-hidden="true">
+            <circle cx="12" cy="12" r="9"></circle><path d="M15 9l-6 6"></path><path d="M9 9l6 6"></path>
+          </svg>
+          <span>El ERP no sabe qué es una etapa, un lead ni una conversación. El agente de IA no tiene credenciales suyas.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- El camino de un mensaje hasta el pedido -->
+  <div style="display: flex; flex-direction: column; gap: 0">
+    <div style="padding: 8px; background: #417690; color: #fff; font-size: 0.8125rem; font-weight: 400">El camino de un mensaje</div>
+    <div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0; border: 1px solid #e8e8e8; border-top: none">
+      <sc-for list="{{camino}}" as="c" hint-placeholder-count="5">
+        <div style="display: flex; flex-direction: column; gap: 5px; padding: 14px 12px; border-right: 1px solid #e8e8e8; background: {{c.fondo}}">
+          <div style="display: flex; align-items: center; gap: 7px">
+            <span style="width: 20px; height: 20px; border-radius: 50%; background: {{c.color}}; color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 0.625rem; font-weight: 600; flex-shrink: 0">{{c.n}}</span>
+            <span style="font-size: 0.8125rem; font-weight: 500; color: #000">{{c.titulo}}</span>
+          </div>
+          <span style="font-size: 0.75rem; color: #444; line-height: 1.05rem">{{c.detalle}}</span>
+          <span style="font-size: 0.6875rem; color: #666; font-family: ui-monospace, monospace">{{c.donde}}</span>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <!-- Por qué el CRM no vive en el ERP -->
+  <div style="display: flex; flex-direction: column; gap: 0">
+    <div style="padding: 8px; background: #417690; color: #fff; font-size: 0.8125rem; font-weight: 400">Lo que se gana teniéndolo aquí</div>
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; border: 1px solid #e8e8e8; border-top: none">
+      <sc-for list="{{razones}}" as="r" hint-placeholder-count="3">
+        <div style="display: flex; flex-direction: column; gap: 4px; padding: 14px; border-right: 1px solid #e8e8e8">
+          <span style="font-size: 0.8125rem; font-weight: 500; color: #000">{{r.titulo}}</span>
+          <span style="font-size: 0.75rem; color: #444; line-height: 1.05rem">{{r.detalle}}</span>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{}'>
+class Component extends DCLogic {
+  renderVals() {
+    const ALT = '#f8f8f8';
+    const BLANCO = '#fff';
+
+    return {
+      propio: [
+        { nombre: 'Cliente', donde: 'Contact', que: 'Teléfono, nombre, canal, etiquetas, valor de vida. Un solo registro, reutilizado por conversaciones y oportunidades.', fondo: BLANCO },
+        { nombre: 'Oportunidad', donde: 'Opportunity', que: 'Etapa, monto, quién la atiende, conversación de origen y confianza con que la IA la detectó.', fondo: ALT },
+        { nombre: 'Pipeline', donde: 'PipelineStage', que: 'Etapas y probabilidades, editables desde el panel sin desplegar código.', fondo: BLANCO },
+        { nombre: 'Conversaciones', donde: 'Conversation · Message', que: 'Historial íntegro de WhatsApp y voz, con la decisión de enrutamiento de cada mensaje.', fondo: ALT },
+        { nombre: 'Reportes', donde: 'consultas propias', que: 'Embudo, tiempos de respuesta, motivos de pérdida. Sin depender de reportes del ERP.', fondo: BLANCO },
+      ],
+      erp: [
+        { nombre: 'Pedido', donde: 'sale.order', que: 'Nace al ganar la oportunidad, con la referencia que impide duplicarlo.', fondo: BLANCO },
+        { nombre: 'Cliente fiscal', donde: 'res.partner', que: 'Solo lo necesario para facturar. La ficha comercial completa se queda en el CRM.', fondo: ALT },
+        { nombre: 'Existencias', donde: 'stock.quant', que: 'Consulta de disponibilidad cuando el vendedor la pide. No se replica.', fondo: BLANCO },
+        { nombre: 'Facturación', donde: 'account.move', que: 'Íntegra en el ERP. El CRM solo la muestra al consultar.', fondo: ALT },
+      ],
+      camino: [
+        { n: '1', titulo: 'Mensaje', detalle: '«kiero levantar pedido: 10 galones de aceite…»', donde: 'webhook', color: '#79aec8', fondo: BLANCO },
+        { n: '2', titulo: 'Intención', detalle: 'El determinador clasifica «pedido» con 0.88 y elige el agente de ventas.', donde: 'determinador', color: '#79aec8', fondo: ALT },
+        { n: '3', titulo: 'Oportunidad', detalle: 'Se crea en el CRM, atada a la conversación que la originó.', donde: 'CRM propio', color: '#417690', fondo: BLANCO },
+        { n: '4', titulo: 'Negociación', detalle: 'La IA o el vendedor mueven la etapa. Todo queda en la base propia.', donde: 'CRM propio', color: '#417690', fondo: ALT },
+        { n: '5', titulo: 'Pedido', detalle: 'Al ganar, y solo entonces, el pedido se crea en el ERP.', donde: 'puente → Odoo', color: '#264b5d', fondo: BLANCO },
+      ],
+      razones: [
+        { titulo: 'Cambiar de ERP no cuesta la relación', detalle: 'Si mañana el ERP es otro, el historial de clientes, conversaciones y oportunidades se queda donde está. Lo que se reescribe es un adaptador.' },
+        { titulo: 'Los datos que la IA necesita caben', detalle: 'Confianza de clasificación, conversación de origen y tono no tienen dónde vivir en un esquema de ERP sin forzarlo.' },
+        { titulo: 'Leer y escribir el pipeline no cruza la red', detalle: 'Mover una etapa es una escritura local, no una llamada remota al ERP en cada paso de la conversación.' },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,202 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body {
+      margin: 0;
+      font-family: "Segoe UI", system-ui, Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 0.875rem;
+      color: #333;
+      background: #fff;
+    }
+    a { color: #417893; text-decoration: none; }
+    a:hover { color: #036; }
+  </style>
+</helmet>
+
+<div style="min-height: 1000px; background: #fff; display: flex; flex-direction: column">
+
+  <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 40px; background: #417690; color: #ffc">
+    <span style="font-size: 1.125rem; font-weight: 300; color: #f5dd5d">Plataforma IA WhatsApp</span>
+    <span style="font-size: 0.75rem; color: #fff">M. Robles</span>
+  </div>
+
+  <div style="padding: 10px 40px; background: #264b5d; color: #c4dce8; font-size: 0.875rem">
+    <a href="#" style="color: #fff">Inicio</a><span style="padding: 0 4px">›</span>
+    <a href="#" style="color: #fff">CRM</a><span style="padding: 0 4px">›</span>
+    <span>Reportes</span>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 30px; padding: 20px 40px 40px">
+
+    <div style="display: flex; justify-content: space-between; align-items: flex-end; gap: 20px">
+      <div style="display: flex; flex-direction: column; gap: 3px">
+        <h1 style="margin: 0; font-size: 1.25rem; font-weight: 300; color: #000">Reportes de ventas</h1>
+        <span style="font-size: 0.8125rem; color: #666">Agosto 2026 · todos los vendedores · canal WhatsApp</span>
+      </div>
+      <div style="display: flex; gap: 8px">
+        <span style="padding: 3px 12px; background: #747474; color: #fff; border-radius: 15px; font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.5rem">Este mes</span>
+        <span style="padding: 3px 12px; background: #f8f8f8; color: #444; border: 1px solid #ccc; border-radius: 15px; font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.5rem">Trimestre</span>
+      </div>
+    </div>
+
+    <!-- Cifras de cabecera -->
+    <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px">
+      <sc-for list="{{kpis}}" as="k" hint-placeholder-count="4">
+        <div style="display: flex; flex-direction: column; gap: 3px; padding: 12px 14px; background: #f8f8f8; border: 1px solid #e8e8e8">
+          <span style="font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.5px; color: #666">{{k.etiqueta}}</span>
+          <span style="font-size: 1.5rem; font-weight: 500; color: #000; font-variant-numeric: tabular-nums; line-height: 1.8rem">{{k.valor}}</span>
+          <span style="font-size: 0.6875rem; color: {{k.color}}">{{k.delta}}</span>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 30px; align-items: start">
+
+      <!-- Embudo por etapa -->
+      <div style="display: flex; flex-direction: column; gap: 0">
+        <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 8px; background: #417690; color: #fff; font-size: 0.8125rem; font-weight: 400">
+          <span>Embudo de conversión</span>
+          <span style="font-size: 0.6875rem; color: #c4dce8">acumulado de agosto, no el tablero de hoy</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 12px; padding: 16px; border: 1px solid #e8e8e8; border-top: none">
+          <sc-for list="{{embudo}}" as="e" hint-placeholder-count="6">
+            <div style="display: flex; flex-direction: column; gap: 4px">
+              <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 10px">
+                <span style="font-size: 0.8125rem; color: #333">{{e.etapa}}</span>
+                <div style="display: flex; align-items: baseline; gap: 10px">
+                  <span style="font-size: 0.8125rem; color: #000; font-variant-numeric: tabular-nums; font-weight: 500">{{e.cantidad}}</span>
+                  <span style="font-size: 0.6875rem; color: #666; font-variant-numeric: tabular-nums; min-width: 44px; text-align: right">{{e.porcentaje}}</span>
+                </div>
+              </div>
+              <!-- Barra: ancho proporcional, en el azul del panel -->
+              <div style="height: 22px; background: #f8f8f8; border: 1px solid #e8e8e8">
+                <div style="height: 100%; width: {{e.ancho}}; background: {{e.color}}"></div>
+              </div>
+              <sc-if value="{{e.fuga}}" hint-placeholder-val="{{true}}">
+                <span style="font-size: 0.6875rem; color: #ba2121">{{e.fuga}}</span>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 30px">
+
+        <!-- Motivos de pérdida: alimentan el auto-entrenamiento -->
+        <div style="display: flex; flex-direction: column; gap: 0">
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px; background: #417690; color: #fff; font-size: 0.8125rem; font-weight: 400">
+            <span>Motivos de pérdida</span>
+            <span style="font-size: 0.6875rem; color: #c4dce8">alimenta los prompts</span>
+          </div>
+          <div style="display: grid; grid-template-columns: 2.2fr 0.7fr 1.1fr; border: 1px solid #e8e8e8; border-top: none">
+            <div style="padding: 5px 10px; font-size: 0.6875rem; text-transform: uppercase; color: #666; background: #f8f8f8; border-bottom: 1px solid #e8e8e8; font-weight: 500">Motivo</div>
+            <div style="padding: 5px 10px; font-size: 0.6875rem; text-transform: uppercase; color: #666; background: #f8f8f8; border-bottom: 1px solid #e8e8e8; font-weight: 500; text-align: right">Casos</div>
+            <div style="padding: 5px 10px; font-size: 0.6875rem; text-transform: uppercase; color: #666; background: #f8f8f8; border-bottom: 1px solid #e8e8e8; font-weight: 500; text-align: right">Importe</div>
+            <sc-for list="{{perdidas}}" as="p" hint-placeholder-count="5">
+              <div style="padding: 8px; font-size: 0.8125rem; line-height: 1rem; border-bottom: 1px solid #e8e8e8; background: {{p.fondo}}">{{p.motivo}}</div>
+              <div style="padding: 8px; font-size: 0.8125rem; line-height: 1rem; border-bottom: 1px solid #e8e8e8; background: {{p.fondo}}; text-align: right; font-variant-numeric: tabular-nums">{{p.casos}}</div>
+              <div style="padding: 8px; font-size: 0.8125rem; line-height: 1rem; border-bottom: 1px solid #e8e8e8; background: {{p.fondo}}; text-align: right; font-variant-numeric: tabular-nums">{{p.importe}}</div>
+            </sc-for>
+          </div>
+        </div>
+
+        <!-- Primera respuesta: IA contra persona -->
+        <div style="display: flex; flex-direction: column; gap: 0">
+          <div style="padding: 8px; background: #417690; color: #fff; font-size: 0.8125rem; font-weight: 400">Tiempo de primera respuesta</div>
+          <!-- Sin barras: 9 s contra 2 h 34 min es un factor de ~1000, y una
+               barra a escala haría invisible la primera. Las cifras y el
+               múltiplo dicen la verdad; un gráfico aquí mentiría. -->
+          <div style="display: flex; flex-direction: column; gap: 0; border: 1px solid #e8e8e8; border-top: none">
+            <sc-for list="{{respuesta}}" as="r" hint-placeholder-count="2">
+              <div style="display: flex; flex-direction: column; gap: 2px; padding: 12px 16px; border-bottom: 1px solid #e8e8e8">
+                <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 10px">
+                  <span style="font-size: 0.8125rem; color: #333">{{r.quien}}</span>
+                  <span style="font-size: 1.125rem; font-weight: 500; color: #000; font-variant-numeric: tabular-nums">{{r.tiempo}}</span>
+                </div>
+                <span style="font-size: 0.6875rem; color: #666">{{r.nota}}</span>
+              </div>
+            </sc-for>
+            <div style="padding: 10px 16px; background: #f8f8f8; font-size: 0.75rem; color: #444">
+              La IA responde unas <strong style="font-weight: 500">1,000 veces</strong> más rápido que la primera respuesta humana.
+            </div>
+          </div>
+        </div>
+
+        <!-- Cierre por vendedor -->
+        <div style="display: flex; flex-direction: column; gap: 0">
+          <div style="padding: 8px; background: #417690; color: #fff; font-size: 0.8125rem; font-weight: 400">Tasa de cierre</div>
+          <table style="border-collapse: collapse; width: 100%">
+            <tbody>
+              <sc-for list="{{cierre}}" as="c" hint-placeholder-count="3">
+                <tr style="background: {{c.fondo}}">
+                  <td style="padding: 8px; font-size: 0.8125rem; line-height: 1rem; border-bottom: 1px solid #e8e8e8">{{c.quien}}</td>
+                  <td style="padding: 8px; font-size: 0.8125rem; line-height: 1rem; border-bottom: 1px solid #e8e8e8; text-align: right; font-variant-numeric: tabular-nums; font-weight: 500">{{c.tasa}}</td>
+                  <td style="padding: 8px; font-size: 0.6875rem; line-height: 1rem; border-bottom: 1px solid #e8e8e8; text-align: right; color: #666">{{c.base}}</td>
+                </tr>
+              </sc-for>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div style="font-size: 0.6875rem; color: #666">
+      Todo lo anterior sale de la base de la plataforma. Los importes facturados se cotejan con el ERP al consultar cada pedido.
+    </div>
+  </div>
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{}'>
+class Component extends DCLogic {
+  renderVals() {
+    const ALT = '#f8f8f8';
+    const BLANCO = '#fff';
+    const AZUL = '#417690';
+    const AZUL_OSCURO = '#264b5d';
+    const CLARO = '#79aec8';
+
+    return {
+      kpis: [
+        { etiqueta: 'Oportunidades nuevas', valor: '146', delta: '+18% vs julio', color: '#1b6b4f' },
+        { etiqueta: 'Ganadas', valor: '38', delta: '+6 vs julio', color: '#1b6b4f' },
+        { etiqueta: 'Importe cerrado', valor: '$1.42 M', delta: '+11% vs julio', color: '#1b6b4f' },
+        { etiqueta: 'Ciclo de cierre', valor: '4.2 d', delta: '+0.6 d vs julio', color: '#ba2121' },
+      ],
+      embudo: [
+        { etapa: 'Nuevo', cantidad: '146', porcentaje: '100%', ancho: '100%', color: CLARO, fuga: '' },
+        { etapa: 'Contactado', cantidad: '121', porcentaje: '83%', ancho: '83%', color: CLARO, fuga: '' },
+        { etapa: 'Calificado', cantidad: '88', porcentaje: '60%', ancho: '60%', color: AZUL, fuga: '' },
+        { etapa: 'Propuesta enviada', cantidad: '61', porcentaje: '42%', ancho: '42%', color: AZUL, fuga: '' },
+        { etapa: 'Negociación', cantidad: '44', porcentaje: '30%', ancho: '30%', color: AZUL_OSCURO, fuga: 'Mayor fuga del embudo: 17 se quedan aquí sin movimiento más de 48 h' },
+        { etapa: 'Ganado', cantidad: '38', porcentaje: '26%', ancho: '26%', color: AZUL_OSCURO, fuga: '' },
+      ],
+      perdidas: [
+        { motivo: 'Precio de la competencia', casos: '9', importe: '$284,600', fondo: BLANCO },
+        { motivo: 'Sin existencia a tiempo', casos: '7', importe: '$198,300', fondo: ALT },
+        { motivo: 'Cliente dejó de responder', casos: '5', importe: '$96,400', fondo: BLANCO },
+        { motivo: 'Crédito no autorizado', casos: '3', importe: '$142,000', fondo: ALT },
+        { motivo: 'Pedido mínimo no alcanzado', casos: '2', importe: '$18,700', fondo: BLANCO },
+      ],
+      respuesta: [
+        { quien: 'Atendido por IA', tiempo: '9 s', ancho: '6%', color: '#1b6b4f', nota: 'mediana de 1,284 conversaciones' },
+        { quien: 'Atendido por persona', tiempo: '2 h 34 min', ancho: '86%', color: '#417690', nota: 'mediana de 212 conversaciones escaladas' },
+      ],
+      cierre: [
+        { quien: 'M. Robles', tasa: '34%', base: '44 oportunidades', fondo: BLANCO },
+        { quien: 'J. Salas', tasa: '27%', base: '52 oportunidades', fondo: ALT },
+        { quien: 'Cerradas por IA sin escalar', tasa: '19%', base: '50 oportunidades', fondo: BLANCO },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

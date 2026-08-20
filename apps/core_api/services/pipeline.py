@@ -78,16 +78,6 @@ class MessagePipeline:
             self._log_duplicate(work.contact_phone, str(work.message_id))
             return PipelineResult(status="duplicate", conversation_id=work.conversation_id)
 
-        # Un reintento tras un fallo posterior al envío no debe reenviar.
-        if await self._conversations.has_sent_reply_after(work.conversation_id, work.message_id):
-            logger.warning(
-                "Mensaje %s ya tenía respuesta enviada: no se reenvía", work.message_id
-            )
-            await self._conversations.mark_inbound_processed(work.message_id)
-            return PipelineResult(
-                status="already_replied", conversation_id=work.conversation_id
-            )
-
         try:
             reply, agent_config = await self._compose_reply(work)
         except Exception:
@@ -100,9 +90,20 @@ class MessagePipeline:
             return PipelineResult(status="no_agent", conversation_id=work.conversation_id)
 
         agent_id = agent_config.id if agent_config else None
-        outbound_id = await self._conversations.register_outbound(
-            work.conversation_id, reply, agent_id=agent_id
+        # El reclamo va atado a ESTE entrante: es lo que distingue un reintento
+        # del mismo mensaje (no se reenvía) de otro mensaje de la misma ráfaga
+        # (sí se responde).
+        outbound_id, ya_enviado = await self._conversations.claim_outbound(
+            work.message_id, work.conversation_id, reply, agent_id=agent_id
         )
+        if ya_enviado:
+            logger.warning(
+                "El mensaje %s ya tenía respuesta enviada: no se reenvía", work.message_id
+            )
+            await self._conversations.mark_inbound_processed(work.message_id, agent_id=agent_id)
+            return PipelineResult(
+                status="already_replied", conversation_id=work.conversation_id
+            )
         try:
             external_id = await self._messaging.send_text(work.contact_phone, reply)
         except Exception:

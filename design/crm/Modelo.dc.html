@@ -1,0 +1,265 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body {
+      margin: 0;
+      font-family: "Segoe UI", system-ui, Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 0.875rem;
+      color: #333;
+      background: #fff;
+    }
+    a { color: #417893; text-decoration: none; }
+    a:hover { color: #036; }
+    code { font-family: ui-monospace, monospace; font-size: 0.75rem; }
+  </style>
+</helmet>
+
+<div style="min-height: 1000px; background: #fff; display: flex; flex-direction: column; gap: 24px; padding: 32px 40px 40px">
+
+  <div style="display: flex; flex-direction: column; gap: 6px">
+    <span style="font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.5px; color: #666">Modelo de datos</span>
+    <h1 style="margin: 0; font-size: 1.5rem; font-weight: 300; color: #000">El CRM sobre las tablas que ya existen</h1>
+    <p style="margin: 0; max-width: 90ch; font-size: 0.875rem; line-height: 1.3rem; color: #444">
+      La Fase 1 ya dejó en la base al cliente, la conversación y el mensaje. El CRM se apoya en ellos
+      en lugar de volver a declararlos: crear un segundo registro de cliente reproduciría dentro de
+      la plataforma exactamente la duplicación que el diseño evita con el ERP.
+    </p>
+  </div>
+
+  <!-- Entidades: existentes contra nuevas -->
+  <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; align-items: start">
+    <sc-for list="{{entidades}}" as="e" hint-placeholder-count="6">
+      <div style="display: flex; flex-direction: column; gap: 0; border: 1px solid #e8e8e8">
+        <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding: 8px; background: {{e.color}}; color: #fff; font-size: 0.8125rem; font-weight: 400">
+          <span style="font-family: ui-monospace, monospace">{{e.nombre}}</span>
+          <span style="font-size: 0.6875rem; color: #e4e4e4; text-transform: uppercase; letter-spacing: 0.5px">{{e.origen}}</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 0">
+          <sc-for list="{{e.campos}}" as="c" hint-placeholder-count="4">
+            <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 6px 8px; border-bottom: 1px solid #e8e8e8; background: {{c.fondo}}">
+              <span style="font-size: 0.75rem; color: #333; font-family: ui-monospace, monospace">{{c.campo}}</span>
+              <span style="font-size: 0.6875rem; color: #666; text-align: right">{{c.nota}}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+
+  <!-- Relaciones en una línea legible -->
+  <div style="display: flex; flex-direction: column; gap: 0">
+    <div style="padding: 8px; background: #417690; color: #fff; font-size: 0.8125rem; font-weight: 400">Relaciones</div>
+    <div style="display: flex; flex-direction: column; gap: 7px; padding: 14px; border: 1px solid #e8e8e8; border-top: none; font-size: 0.8125rem; color: #333">
+      <sc-for list="{{relaciones}}" as="r" hint-placeholder-count="5">
+        <div style="display: flex; align-items: baseline; gap: 10px">
+          <span style="font-family: ui-monospace, monospace; font-size: 0.75rem; color: #264b5d; min-width: 320px">{{r.expresion}}</span>
+          <span style="font-size: 0.75rem; color: #444">{{r.lectura}}</span>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <!-- Las correcciones al brief. Esto es el contenido más importante del artboard. -->
+  <div style="display: flex; flex-direction: column; gap: 0">
+    <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px; background: #ba2121; color: #fff; font-size: 0.8125rem; font-weight: 400">
+      <span>Seis cosas que no se pueden implementar tal cual</span>
+      <span style="font-size: 0.6875rem; color: #ffefef; text-transform: uppercase; letter-spacing: 0.5px">revisar antes de codear</span>
+    </div>
+    <div style="display: grid; grid-template-columns: 26fr 37fr 37fr; border: 1px solid #e8e8e8; border-top: none">
+      <div style="padding: 5px 10px; font-size: 0.6875rem; text-transform: uppercase; color: #666; background: #f8f8f8; border-bottom: 1px solid #e8e8e8; font-weight: 500">Lo que dice el brief</div>
+      <div style="padding: 5px 10px; font-size: 0.6875rem; text-transform: uppercase; color: #666; background: #f8f8f8; border-bottom: 1px solid #e8e8e8; font-weight: 500">Qué pasa si se deja así</div>
+      <div style="padding: 5px 10px; font-size: 0.6875rem; text-transform: uppercase; color: #666; background: #f8f8f8; border-bottom: 1px solid #e8e8e8; font-weight: 500">Corrección propuesta</div>
+      <sc-for list="{{correcciones}}" as="c" hint-placeholder-count="6">
+        <div style="padding: 8px; font-size: 0.75rem; line-height: 1.05rem; border-bottom: 1px solid #e8e8e8; background: {{c.fondo}}; font-family: ui-monospace, monospace; color: #264b5d">{{c.brief}}</div>
+        <div style="padding: 8px; font-size: 0.75rem; line-height: 1.05rem; border-bottom: 1px solid #e8e8e8; background: {{c.fondo}}; color: #ba2121">{{c.consecuencia}}</div>
+        <div style="padding: 8px; font-size: 0.75rem; line-height: 1.05rem; border-bottom: 1px solid #e8e8e8; background: {{c.fondo}}; color: #333">{{c.arreglo}}</div>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="display: flex; align-items: flex-start; gap: 8px; padding: 10px 12px; background: #ccefff; border: 1px solid #a9dcf5; font-size: 0.75rem; color: #264b5d; line-height: 1.05rem">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 1px" aria-hidden="true">
+      <circle cx="12" cy="12" r="9"></circle><path d="M12 8h.01"></path><path d="M11 12h1v4h1"></path>
+    </svg>
+    <span>
+      Las tres pruebas que pide el brief (una conversación no genera dos oportunidades, el pedido se crea
+      una sola vez, y una oportunidad no queda ganada sin pedido) solo se sostienen con las restricciones
+      de la tabla de arriba: con el modelo tal como está escrito, las pruebas pueden pasar en un caso feliz
+      y fallar en cuanto haya dos procesos a la vez.
+    </span>
+  </div>
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{}'>
+class Component extends DCLogic {
+  renderVals() {
+    const ALT = '#f8f8f8';
+    const BLANCO = '#fff';
+    const EXISTE = '#417690';
+    const NUEVO = '#264b5d';
+
+    const campo = (campo, nota, alt = false) => ({ campo, nota, fondo: alt ? ALT : BLANCO });
+
+    return {
+      entidades: [
+        {
+          nombre: 'Contact',
+          origen: 'ya existe',
+          color: EXISTE,
+          campos: [
+            campo('phone', 'único', false),
+            campo('name', '', true),
+            campo('+ email', 'nuevo', false),
+            campo('+ preferred_channel', 'nuevo', true),
+            campo('+ odoo_partner_id', 'referencia', false),
+            campo('+ lifetime_value', 'nuevo', true),
+            campo('+ sentiment_score', 'nuevo', false),
+            campo('+ tags', 'M2M', true),
+          ],
+        },
+        {
+          nombre: 'Conversation · Message',
+          origen: 'ya existe',
+          color: EXISTE,
+          campos: [
+            campo('contact →', 'Contact', false),
+            campo('status', 'activa/escalada', true),
+            campo('last_inbound_at', 'ventana 24 h', false),
+            campo('agent →', 'por mensaje', true),
+            campo('external_id', 'único · idempotencia', false),
+          ],
+        },
+        {
+          nombre: 'PipelineStage',
+          origen: 'nuevo',
+          color: NUEVO,
+          campos: [
+            campo('name', '', false),
+            campo('order', 'único', true),
+            campo('win_probability', '', false),
+            campo('is_won', 'única = verdadera', true),
+            campo('is_lost', '', false),
+          ],
+        },
+        {
+          nombre: 'Opportunity',
+          origen: 'nuevo',
+          color: NUEVO,
+          campos: [
+            campo('contact →', 'Contact', false),
+            campo('stage →', 'PipelineStage', true),
+            campo('conversation →', 'Conversation', false),
+            campo('product_of_interest', '', true),
+            campo('amount', '', false),
+            campo('ai_confidence', '', true),
+            campo('assigned_to →', 'shared.User', false),
+            campo('handled_by', 'ia / humano', true),
+            campo('lost_reason', 'si perdida', false),
+            campo('idempotency_key', 'único', true),
+            campo('odoo_sale_order_id', 'al ganar', false),
+          ],
+        },
+        {
+          nombre: 'OpportunityStageHistory',
+          origen: 'nuevo',
+          color: NUEVO,
+          campos: [
+            campo('opportunity →', 'Opportunity', false),
+            campo('from_stage → to_stage', 'ambas', true),
+            campo('changed_by', 'ia / humano / usuario', false),
+            campo('changed_at', 'solo inserciones', true),
+            campo('trace_id', 'liga con la conversación', false),
+          ],
+        },
+        {
+          nombre: 'MessageMedia',
+          origen: 'nuevo · falta hoy',
+          color: '#ba2121',
+          campos: [
+            campo('message →', 'Message', false),
+            campo('kind', 'audio/imagen/doc', true),
+            campo('provider_media_id', 'del proveedor', false),
+            campo('archivo', 'almacenado aquí', true),
+            campo('mime · bytes · duración', '', false),
+            campo('transcripcion', 'para buscar', true),
+            campo('transcrito_por', 'motor y versión', false),
+            campo('borrar_despues_de', 'retención', true),
+          ],
+        },
+        {
+          nombre: 'Call',
+          origen: 'nuevo · fase de voz',
+          color: '#ba2121',
+          campos: [
+            campo('conversation →', 'Conversation', false),
+            campo('direccion', 'entrante/saliente', true),
+            campo('estado', 'contestada/perdida', false),
+            campo('duracion', '', true),
+            campo('grabacion', 'archivo', false),
+            campo('transcripcion', 'por turnos', true),
+            campo('atendida_por', 'ia / persona', false),
+            campo('consentimiento', 'para grabar', true),
+          ],
+        },
+      ],
+      relaciones: [
+        { expresion: 'Contact 1 — N Opportunity', lectura: 'Un cliente acumula todas sus oportunidades, ganadas y perdidas.' },
+        { expresion: 'Conversation 1 — N Opportunity', lectura: 'Con restricción única parcial: como máximo una abierta por conversación. Esa es la barrera que impide duplicarlas; las ya cerradas no cuentan.' },
+        { expresion: 'Message 1 — 0..1 MessageMedia', lectura: 'El archivo de la nota de voz, la foto o el documento, más su transcripción. Hoy no existe: el medio se pierde al llegar.' },
+        { expresion: 'Conversation 1 — N Call', lectura: 'Llamadas con grabación y transcripción, en el mismo hilo que los mensajes. Llega con el canal de voz.' },
+        { expresion: 'Opportunity N — 1 PipelineStage', lectura: 'La etapa se protege contra borrado: perderla dejaría oportunidades huérfanas.' },
+        { expresion: 'Opportunity 1 — N OpportunityStageHistory', lectura: 'Cada movimiento queda registrado con quién lo hizo, sin poder editarse después.' },
+        { expresion: 'Opportunity 0..1 — 1 sale.order (ERP)', lectura: 'La única referencia cruzada al ERP, escrita al ganar.' },
+      ],
+      correcciones: [
+        {
+          brief: 'class Customer(phone unique)',
+          consecuencia: 'Contact ya existe con teléfono único y es lo que usan las conversaciones y los mensajes. Dos tablas de cliente en la misma base significa dos verdades y dos sitios donde corregir un teléfono.',
+          arreglo: 'Ampliar Contact con los campos comerciales en lugar de crear Customer. Si se quiere separar, un perfil uno-a-uno con Contact, nunca otro teléfono único.',
+          fondo: BLANCO,
+        },
+        {
+          brief: 'ForeignKey("auth.User")',
+          consecuencia: 'La plataforma usa un modelo de usuario propio desde la primera migración. Esta referencia no resuelve y la migración falla al aplicarse.',
+          arreglo: 'Referenciar el modelo de usuario configurado, como ya hacen el historial de prompts y la configuración.',
+          fondo: ALT,
+        },
+        {
+          brief: 'source_conversation_id = CharField',
+          consecuencia: 'Guarda un texto libre hacia una conversación que ya es una tabla: no hay integridad, y la prueba de «una conversación no genera dos oportunidades» no la respalda nada en la base.',
+          arreglo: 'Clave ajena a Conversation más una restricción única sobre las oportunidades abiertas de esa conversación.',
+          fondo: BLANCO,
+        },
+        {
+          brief: 'marcar_ganada(): etapa → Odoo → save()',
+          consecuencia: 'Dos clics o un reintento del proceso crean dos pedidos, que es justo el defecto que el propio brief clasifica como crítico. Y si el ERP falla a mitad, el estado en memoria ya cambió.',
+          arreglo: 'Reclamar la etapa con una escritura condicional atómica, pasar una clave de idempotencia al ERP, y confirmar la etapa ganada solo después de que el pedido exista.',
+          fondo: ALT,
+        },
+        {
+          brief: 'PipelineStage.objects.get(is_won=True)',
+          consecuencia: 'Revienta si nadie marcó la etapa ganada y también si alguien marcó dos, y las etapas se editan desde el panel sin desplegar.',
+          arreglo: 'Restricción de base que permita a lo sumo una etapa ganada y una perdida, más validación en el panel al guardar.',
+          fondo: BLANCO,
+        },
+        {
+          brief: "Message.message_type = 'audio' (sin archivo)",
+          consecuencia: 'Una nota de voz o una foto entra registrada solo como tipo, con el contenido vacío: el archivo se pierde en el momento de llegar y nunca se puede ver ni escuchar en el panel. Los enlaces del proveedor además caducan.',
+          arreglo: 'Tabla propia para el medio (archivo almacenado, duración, transcripción y plazo de borrado) más la descarga del archivo al recibir el mensaje. Sin esto, la bandeja de conversación no puede existir.',
+          fondo: ALT,
+        },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

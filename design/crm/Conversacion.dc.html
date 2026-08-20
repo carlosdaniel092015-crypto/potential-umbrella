@@ -1,0 +1,469 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body {
+      margin: 0;
+      font-family: "Segoe UI", system-ui, Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 0.875rem;
+      color: #333;
+      background: #fff;
+    }
+    a { color: #417893; text-decoration: none; }
+    a:hover { color: #036; }
+  </style>
+</helmet>
+
+<div style="height: 1000px; background: #fff; display: flex; flex-direction: column">
+
+  <!-- Sigue siendo un módulo del panel: la barra del sistema se queda -->
+  <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 20px; background: #417690; color: #ffc; flex-shrink: 0">
+    <div style="display: flex; align-items: baseline; gap: 10px">
+      <span style="font-size: 1rem; font-weight: 300; color: #f5dd5d">Plataforma IA WhatsApp</span>
+      <span style="font-size: 0.75rem; color: #c4dce8">Bandeja</span>
+    </div>
+    <span style="font-size: 0.75rem; color: #fff">M. Robles</span>
+  </div>
+
+  <!-- Bandeja de tres paneles: lista · hilo · contexto -->
+  <div style="display: grid; grid-template-columns: 320px minmax(0, 1fr) 288px; flex-grow: 1; min-height: 0">
+
+    <!-- ================= LISTA DE CONVERSACIONES ================= -->
+    <div style="display: flex; flex-direction: column; border-right: 1px solid #d9dee3; background: #fff; min-height: 0">
+
+      <div style="display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border-bottom: 1px solid #e8e8e8; flex-shrink: 0">
+        <div style="display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: #f0f2f5; border-radius: 16px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#747474" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0" aria-hidden="true">
+            <circle cx="11" cy="11" r="7"></circle><path d="m20 20-4.5-4.5"></path>
+          </svg>
+          <span style="font-size: 0.8125rem; color: #747474">Buscar cliente, texto o transcripción</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 6px">
+          <sc-for list="{{pestanas}}" as="p" hint-placeholder-count="3">
+            <span style="padding: 3px 10px; background: {{p.fondo}}; color: {{p.color}}; border: 1px solid {{p.borde}}; border-radius: 15px; font-size: 0.75rem">{{p.nombre}} {{p.total}}</span>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; overflow: hidden; flex-grow: 1">
+        <sc-for list="{{conversaciones}}" as="c" hint-placeholder-count="7">
+          <div style="display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border-bottom: 1px solid #f0f2f5; background: {{c.fondo}}; border-left: 3px solid {{c.marca}}">
+
+            <!-- Iniciales en lugar de foto: no tenemos avatar del cliente -->
+            <span style="flex-shrink: 0; width: 38px; height: 38px; border-radius: 50%; background: {{c.tono}}; color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 0.8125rem; font-weight: 500">{{c.iniciales}}</span>
+
+            <div style="display: flex; flex-direction: column; gap: 2px; min-width: 0; flex-grow: 1">
+              <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px">
+                <span style="font-size: 0.8125rem; font-weight: {{c.peso}}; color: #000; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{c.nombre}}</span>
+                <span style="flex-shrink: 0; font-size: 0.6875rem; color: {{c.horaColor}}; font-variant-numeric: tabular-nums">{{c.hora}}</span>
+              </div>
+
+              <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px">
+                <div style="display: flex; align-items: center; gap: 5px; min-width: 0">
+                  <!-- Icono del tipo del último mensaje: se lee de un vistazo -->
+                  <span style="flex-shrink: 0; display: inline-flex; color: #747474">{{c.icono}}</span>
+                  <span style="font-size: 0.75rem; color: #666; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{c.ultimo}}</span>
+                </div>
+                <sc-if value="{{c.sinLeer}}" hint-placeholder-val="{{true}}">
+                  <span style="flex-shrink: 0; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: #1b6b4f; color: #fff; font-size: 0.6875rem; display: inline-flex; align-items: center; justify-content: center; font-variant-numeric: tabular-nums">{{c.sinLeer}}</span>
+                </sc-if>
+              </div>
+
+              <div style="display: flex; align-items: center; gap: 5px; margin-top: 1px">
+                <span style="padding: 0 5px; background: {{c.quienFondo}}; color: {{c.quienColor}}; border-radius: 2px; font-size: 0.625rem; text-transform: uppercase; letter-spacing: 0.4px">{{c.quien}}</span>
+                <sc-if value="{{c.aviso}}" hint-placeholder-val="{{true}}">
+                  <span style="font-size: 0.625rem; color: #ba2121">{{c.aviso}}</span>
+                </sc-if>
+              </div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <!-- ================= HILO ================= -->
+    <div style="display: flex; flex-direction: column; min-height: 0; background: #f0f2f5">
+
+      <!-- Cabecera del hilo -->
+      <div style="display: flex; align-items: center; gap: 12px; padding: 9px 16px; background: #fff; border-bottom: 1px solid #d9dee3; flex-shrink: 0">
+        <span style="flex-shrink: 0; width: 36px; height: 36px; border-radius: 50%; background: #417690; color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 0.8125rem; font-weight: 500">MB</span>
+        <div style="display: flex; flex-direction: column; gap: 1px; flex-grow: 1; min-width: 0">
+          <span style="font-size: 0.9375rem; font-weight: 500; color: #000">Mini Súper Don Beto</span>
+          <div style="display: flex; align-items: center; gap: 8px; font-size: 0.6875rem; color: #666">
+            <span style="font-variant-numeric: tabular-nums">+52 1 555 000 1111</span>
+            <span>·</span>
+            <span style="display: inline-flex; align-items: center; gap: 4px">
+              <span style="width: 7px; height: 7px; border-radius: 50%; background: #1b6b4f"></span>
+              puede recibir mensajes hasta las 09:14 de mañana
+            </span>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0">
+          <sc-for list="{{accionesHilo}}" as="a" hint-placeholder-count="3">
+            <span style="padding: 4px 10px; background: {{a.fondo}}; color: {{a.color}}; border: 1px solid {{a.borde}}; border-radius: 4px; font-size: 0.75rem">{{a.texto}}</span>
+          </sc-for>
+        </div>
+      </div>
+
+      <!-- Lienzo del hilo -->
+      <div style="display: flex; flex-direction: column; gap: 10px; padding: 16px 20px; flex-grow: 1; overflow: hidden">
+
+        <div style="align-self: center; padding: 2px 12px; background: #fff; border-radius: 12px; font-size: 0.6875rem; color: #666; box-shadow: 0 1px 1px rgba(0,0,0,0.06)">martes 20 de agosto</div>
+
+        <!-- Texto entrante -->
+        <div style="display: flex; flex-direction: column; gap: 2px; align-self: flex-start; max-width: 68%">
+          <div style="padding: 7px 11px; background: #fff; border-radius: 8px 8px 8px 2px; box-shadow: 0 1px 1px rgba(0,0,0,0.08); font-size: 0.8125rem; line-height: 1.15rem; color: #111">buen dia, ya llego el aceite 1-2-3 o sigue agotado</div>
+          <span style="font-size: 0.625rem; color: #667781; padding-left: 4px">09:12</span>
+        </div>
+
+        <!-- Respuesta de la IA -->
+        <div style="display: flex; flex-direction: column; gap: 2px; align-self: flex-end; max-width: 68%">
+          <div style="padding: 7px 11px; background: #d7ecf5; border-radius: 8px 8px 2px 8px; box-shadow: 0 1px 1px rgba(0,0,0,0.08); font-size: 0.8125rem; line-height: 1.15rem; color: #111">Buen día. Sí, ya hay existencia de aceite 1-2-3 en galón. ¿Cuántos necesitas?</div>
+          <div style="display: flex; align-items: center; gap: 5px; align-self: flex-end; padding-right: 4px">
+            <span style="font-size: 0.625rem; color: #667781">IA · 09:12</span>
+            <!-- Entregado y leído -->
+            <svg width="14" height="9" viewBox="0 0 20 12" fill="none" stroke="#4fa8d8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-label="leído">
+              <path d="M1 6.5 4.5 10 11 2"></path><path d="M8 6.5 11.5 10 18 2"></path>
+            </svg>
+          </div>
+        </div>
+
+        <!-- NOTA DE VOZ: reproductor operable -->
+        <div style="display: flex; flex-direction: column; gap: 2px; align-self: flex-start; max-width: 68%">
+          <div style="display: flex; flex-direction: column; gap: 0; background: #fff; border-radius: 8px 8px 8px 2px; box-shadow: 0 1px 1px rgba(0,0,0,0.08); overflow: hidden">
+
+            <div style="display: flex; align-items: center; gap: 10px; padding: 9px 11px">
+              <span onClick="{{alternarAudio}}" title="Reproducir la nota de voz" style="cursor: pointer; flex-shrink: 0; width: 32px; height: 32px; border-radius: 50%; background: #417690; display: inline-flex; align-items: center; justify-content: center">
+                <sc-if value="{{sonando}}" hint-placeholder-val="{{false}}">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="#fff" aria-label="pausar"><rect x="6" y="5" width="4" height="14" rx="1"></rect><rect x="14" y="5" width="4" height="14" rx="1"></rect></svg>
+                </sc-if>
+                <sc-if value="{{pausado}}" hint-placeholder-val="{{true}}">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="#fff" aria-label="reproducir"><path d="M8 5v14l11-7z"></path></svg>
+                </sc-if>
+              </span>
+
+              <div style="display: flex; align-items: center; gap: 2px; height: 28px; flex-grow: 1">
+                <sc-for list="{{onda}}" as="b" hint-placeholder-count="34">
+                  <span style="width: 3px; height: {{b.alto}}; background: {{b.color}}; border-radius: 2px"></span>
+                </sc-for>
+              </div>
+
+              <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px; flex-shrink: 0">
+                <span style="font-size: 0.6875rem; color: #444; font-variant-numeric: tabular-nums">{{reloj}}</span>
+                <span style="font-size: 0.5625rem; color: #667781; border: 1px solid #d9dee3; border-radius: 8px; padding: 0 4px">1x</span>
+              </div>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 3px; padding: 8px 11px; background: #f8f8f8; border-top: 1px solid #e8e8e8">
+              <div style="display: flex; align-items: center; gap: 6px">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#667781" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M4 7h16"></path><path d="M4 12h10"></path><path d="M4 17h13"></path>
+                </svg>
+                <span style="font-size: 0.625rem; text-transform: uppercase; letter-spacing: 0.4px; color: #667781">Transcripción</span>
+              </div>
+              <span style="font-size: 0.8125rem; line-height: 1.15rem; color: #333">kiero levantar pedido: 10 galones de aceite 1-2-3, 5 cajas de mayonesa McCormick chica y 2 costales de <mark style="background: #ffe89a; padding: 0 2px">frijol</mark> negro. cliente Mini Súper Don Beto, entrega el jueves si se puede</span>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px; padding-left: 4px">
+            <span style="font-size: 0.625rem; color: #667781">nota de voz · 0:19 · 09:14</span>
+            <a href="#" style="font-size: 0.625rem">descargar</a>
+          </div>
+        </div>
+
+        <!-- IMAGEN -->
+        <div style="display: flex; flex-direction: column; gap: 2px; align-self: flex-start; max-width: 54%">
+          <div style="display: flex; flex-direction: column; gap: 0; background: #fff; border-radius: 8px 8px 8px 2px; box-shadow: 0 1px 1px rgba(0,0,0,0.08); overflow: hidden; padding: 3px">
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; height: 190px; background: #dfe5e7; border-radius: 6px">
+              <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#8696a0" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="3" y="4" width="18" height="16" rx="2"></rect>
+                <circle cx="8.5" cy="9.5" r="1.5"></circle>
+                <path d="m21 16-5-5L9 18"></path>
+              </svg>
+              <span style="font-size: 0.625rem; color: #667781">foto del cliente · 1.2 MB · toca para ampliar</span>
+            </div>
+            <div style="padding: 6px 8px 2px; font-size: 0.8125rem; line-height: 1.15rem; color: #111">esta es la lista que me dio, checala porfa</div>
+          </div>
+          <span style="font-size: 0.625rem; color: #667781; padding-left: 4px">imagen · 09:15</span>
+        </div>
+
+        <!-- Respuesta de la IA reconociendo los dos medios -->
+        <div style="display: flex; flex-direction: column; gap: 2px; align-self: flex-end; max-width: 68%">
+          <div style="padding: 7px 11px; background: #d7ecf5; border-radius: 8px 8px 2px 8px; box-shadow: 0 1px 1px rgba(0,0,0,0.08); font-size: 0.8125rem; line-height: 1.15rem; color: #111">Recibí tu nota de voz y la foto. Ya anoté los 10 galones, 5 cajas de mayonesa y 2 costales de frijol. La lista de la foto la revisa una persona del equipo para no equivocarnos.</div>
+          <div style="display: flex; align-items: center; gap: 5px; align-self: flex-end; padding-right: 4px">
+            <span style="font-size: 0.625rem; color: #667781">IA · 09:15</span>
+            <svg width="14" height="9" viewBox="0 0 20 12" fill="none" stroke="#4fa8d8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-label="leído">
+              <path d="M1 6.5 4.5 10 11 2"></path><path d="M8 6.5 11.5 10 18 2"></path>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Evento del sistema -->
+        <div style="align-self: center; display: flex; align-items: center; gap: 6px; padding: 3px 12px; background: #fff3c4; border-radius: 12px; font-size: 0.625rem; color: #6b5900; box-shadow: 0 1px 1px rgba(0,0,0,0.06)">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 9v4"></path><path d="M12 17h.01"></path><circle cx="12" cy="12" r="9"></circle>
+          </svg>
+          pasó a M. Robles · la foto necesita lectura humana · 09:15
+        </div>
+
+        <!-- LLAMADA con grabación -->
+        <div style="display: flex; flex-direction: column; gap: 2px; align-self: flex-end; max-width: 72%">
+          <div style="display: flex; flex-direction: column; gap: 0; background: #fff; border-radius: 8px 8px 2px 8px; box-shadow: 0 1px 1px rgba(0,0,0,0.08); overflow: hidden">
+
+            <div style="display: flex; align-items: center; gap: 9px; padding: 8px 11px; border-bottom: 1px solid #e8e8e8">
+              <span style="flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%; background: #e7f3e9; display: inline-flex; align-items: center; justify-content: center">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#1b6b4f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M5 4h4l2 5-3 2a12 12 0 0 0 5 5l2-3 5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"></path>
+                </svg>
+              </span>
+              <div style="display: flex; flex-direction: column; gap: 0; flex-grow: 1">
+                <span style="font-size: 0.8125rem; font-weight: 500; color: #111">Llamada saliente</span>
+                <span style="font-size: 0.625rem; color: #667781">atendida por la IA · contestada</span>
+              </div>
+              <span style="flex-shrink: 0; font-size: 0.75rem; color: #444; font-variant-numeric: tabular-nums">2:14</span>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 10px; padding: 9px 11px; border-bottom: 1px solid #e8e8e8">
+              <span onClick="{{alternarLlamada}}" title="Reproducir la grabación" style="cursor: pointer; flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%; background: #417690; display: inline-flex; align-items: center; justify-content: center">
+                <sc-if value="{{llamadaSonando}}" hint-placeholder-val="{{false}}">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="#fff" aria-label="pausar"><rect x="6" y="5" width="4" height="14" rx="1"></rect><rect x="14" y="5" width="4" height="14" rx="1"></rect></svg>
+                </sc-if>
+                <sc-if value="{{llamadaPausada}}" hint-placeholder-val="{{true}}">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="#fff" aria-label="reproducir"><path d="M8 5v14l11-7z"></path></svg>
+                </sc-if>
+              </span>
+              <div style="flex-grow: 1; height: 5px; background: #e8e8e8; border-radius: 3px">
+                <div style="width: {{avanceLlamada}}; height: 100%; background: #417690; border-radius: 3px"></div>
+              </div>
+              <span style="flex-shrink: 0; font-size: 0.625rem; color: #667781; font-variant-numeric: tabular-nums">{{relojLlamada}}</span>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 5px; padding: 9px 11px; background: #f8f8f8">
+              <span style="font-size: 0.625rem; text-transform: uppercase; letter-spacing: 0.4px; color: #667781">Transcripción de la llamada</span>
+              <sc-for list="{{llamada}}" as="l" hint-placeholder-count="4">
+                <div style="display: flex; gap: 8px; align-items: baseline">
+                  <span style="flex-shrink: 0; font-size: 0.625rem; color: #667781; font-variant-numeric: tabular-nums; min-width: 30px">{{l.tiempo}}</span>
+                  <span style="flex-shrink: 0; font-size: 0.625rem; color: {{l.color}}; min-width: 48px; text-transform: uppercase; letter-spacing: 0.4px">{{l.quien}}</span>
+                  <span style="font-size: 0.8125rem; line-height: 1.1rem; color: #333">{{l.texto}}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <span style="font-size: 0.625rem; color: #667781; align-self: flex-end; padding-right: 4px">11:02</span>
+        </div>
+
+        <!-- Respuesta de una persona: color distinto al de la IA -->
+        <div style="display: flex; flex-direction: column; gap: 2px; align-self: flex-end; max-width: 68%">
+          <div style="padding: 7px 11px; background: #dcf8c6; border-radius: 8px 8px 2px 8px; box-shadow: 0 1px 1px rgba(0,0,0,0.08); font-size: 0.8125rem; line-height: 1.15rem; color: #111">Don Beto, ya revisé su lista y le mandé el pedido en PDF. Le llega el jueves antes de las once.</div>
+          <div style="display: flex; align-items: center; gap: 5px; align-self: flex-end; padding-right: 4px">
+            <span style="font-size: 0.625rem; color: #667781">M. Robles · 11:06</span>
+            <svg width="14" height="9" viewBox="0 0 20 12" fill="none" stroke="#8696a0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-label="entregado">
+              <path d="M1 6.5 4.5 10 11 2"></path><path d="M8 6.5 11.5 10 18 2"></path>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- Caja de redacción -->
+      <div style="display: flex; align-items: center; gap: 10px; padding: 9px 16px; background: #fff; border-top: 1px solid #d9dee3; flex-shrink: 0">
+        <span title="Adjuntar" style="flex-shrink: 0; display: inline-flex; color: #54656f">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M20 12.5 12.5 20a4.6 4.6 0 0 1-6.5-6.5l7-7a3 3 0 0 1 4.3 4.3L10 17.6"></path>
+          </svg>
+        </span>
+        <div style="flex-grow: 1; padding: 8px 12px; background: #f0f2f5; border-radius: 18px; font-size: 0.8125rem; color: #747474">Escribe para responder como M. Robles…</div>
+        <span title="Grabar nota de voz" style="flex-shrink: 0; display: inline-flex; color: #54656f">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0"></path><path d="M12 18v3"></path>
+          </svg>
+        </span>
+        <span style="flex-shrink: 0; width: 34px; height: 34px; border-radius: 50%; background: #417690; display: inline-flex; align-items: center; justify-content: center" title="Enviar">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M3 20.5 21 12 3 3.5 3 10l12 2-12 2z"></path></svg>
+        </span>
+      </div>
+    </div>
+
+    <!-- ================= CONTEXTO ================= -->
+    <div style="display: flex; flex-direction: column; border-left: 1px solid #d9dee3; background: #fff; min-height: 0; overflow: hidden">
+
+      <div style="display: flex; flex-direction: column; gap: 3px; padding: 10px 12px; border-bottom: 1px solid #e8e8e8">
+        <span style="font-size: 0.625rem; text-transform: uppercase; letter-spacing: 0.5px; color: #667781">Oportunidad abierta</span>
+        <a href="#" style="font-size: 0.8125rem; font-weight: 500">#1184 · Nuevo</a>
+        <span style="font-size: 0.75rem; color: #444; font-variant-numeric: tabular-nums">$14,200 · aceite, mayonesa, frijol</span>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 0">
+        <div style="padding: 7px 12px; background: #f8f8f8; border-bottom: 1px solid #e8e8e8; font-size: 0.625rem; text-transform: uppercase; letter-spacing: 0.5px; color: #667781">Qué entendió la IA</div>
+        <sc-for list="{{lecturas}}" as="l" hint-placeholder-count="4">
+          <div style="display: flex; flex-direction: column; gap: 3px; padding: 8px 12px; border-bottom: 1px solid #e8e8e8">
+            <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px">
+              <span style="font-size: 0.75rem; color: #333">{{l.mensaje}}</span>
+              <span style="flex-shrink: 0; font-size: 0.625rem; color: #667781; font-variant-numeric: tabular-nums">{{l.hora}}</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px">
+              <span style="padding: 1px 6px; background: {{l.fondo}}; color: {{l.color}}; border-radius: 2px; font-size: 0.625rem; text-transform: uppercase; letter-spacing: 0.4px">{{l.intencion}}</span>
+              <span style="font-size: 0.625rem; color: #667781; font-variant-numeric: tabular-nums">{{l.confianza}}</span>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 0; margin-top: 14px">
+        <div style="padding: 7px 12px; background: #f8f8f8; border-top: 1px solid #e8e8e8; border-bottom: 1px solid #e8e8e8; font-size: 0.625rem; text-transform: uppercase; letter-spacing: 0.5px; color: #667781">Qué se guarda y cuánto</div>
+        <sc-for list="{{retencion}}" as="r" hint-placeholder-count="5">
+          <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding: 6px 12px; border-bottom: 1px solid #f0f2f5">
+            <span style="font-size: 0.75rem; color: #333">{{r.medio}}</span>
+            <span style="flex-shrink: 0; font-size: 0.6875rem; color: #666">{{r.plazo}}</span>
+          </div>
+        </sc-for>
+        <div style="display: flex; align-items: flex-start; gap: 7px; padding: 8px 12px; background: #ffefef; font-size: 0.625rem; color: #ba2121; line-height: 0.9rem">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 1px" aria-hidden="true">
+            <path d="M12 9v4"></path><path d="M12 17h.01"></path><circle cx="12" cy="12" r="9"></circle>
+          </svg>
+          <span>Audios, fotos y grabaciones son datos personales: necesitan plazo de borrado y acceso por rol.</span>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 0; margin-top: 14px">
+        <div style="padding: 7px 12px; background: #ba2121; color: #fff; font-size: 0.625rem; text-transform: uppercase; letter-spacing: 0.5px">Falta construirlo</div>
+        <sc-for list="{{pendiente}}" as="p" hint-placeholder-count="4">
+          <div style="display: flex; align-items: flex-start; gap: 7px; padding: 8px 12px; border-bottom: 1px solid #e8e8e8">
+            <span style="flex-shrink: 0; width: 13px; height: 13px; margin-top: 1px; border: 1px solid #ccc; border-radius: 2px; background: #fff"></span>
+            <div style="display: flex; flex-direction: column; gap: 1px">
+              <span style="font-size: 0.6875rem; color: #333">{{p.que}}</span>
+              <span style="font-size: 0.625rem; color: #667781; line-height: 0.85rem">{{p.detalle}}</span>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { sonando: false, llamadaSonando: false };
+  }
+
+  renderVals() {
+    const ALT = '#f8f8f8';
+    const BLANCO = '#fff';
+
+    const sonando = Boolean(this.state.sonando);
+    const llamadaSonando = Boolean(this.state.llamadaSonando);
+
+    // Onda de la nota de voz: la parte reproducida va en azul lleno.
+    const alturas = [5, 9, 14, 21, 17, 10, 7, 13, 19, 25, 20, 12, 8, 15, 22, 18, 11, 6, 10, 16, 23, 19, 13, 8, 5, 9, 14, 20, 16, 10, 7, 12, 9, 6];
+    const avanzado = sonando ? 19 : 11;
+    const onda = alturas.map((h, i) => ({
+      alto: h + 'px',
+      color: i < avanzado ? '#417690' : '#c9d2d8',
+    }));
+
+    const icono = (tipo) => {
+      const iconos = {
+        voz: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0"></path></svg>',
+        imagen: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="16" rx="2"></rect><circle cx="8.5" cy="9.5" r="1.5"></circle><path d="m21 16-5-5L9 18"></path></svg>',
+        llamada: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 4h4l2 5-3 2a12 12 0 0 0 5 5l2-3 5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"></path></svg>',
+        texto: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16"></path><path d="M4 12h10"></path><path d="M4 17h13"></path></svg>',
+        documento: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 3v5h5"></path><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"></path></svg>',
+      };
+      return iconos[tipo];
+    };
+
+    const conversacion = (nombre, iniciales, tono, ultimo, tipo, hora, opts = {}) => ({
+      nombre,
+      iniciales,
+      tono,
+      ultimo,
+      icono: icono(tipo),
+      hora,
+      sinLeer: opts.sinLeer || '',
+      peso: opts.sinLeer ? '600' : '400',
+      horaColor: opts.sinLeer ? '#1b6b4f' : '#667781',
+      fondo: opts.activa ? '#eaf1f5' : BLANCO,
+      marca: opts.activa ? '#417690' : 'transparent',
+      quien: opts.humano ? opts.humano : 'IA',
+      quienFondo: opts.humano ? '#dcf8c6' : '#d7ecf5',
+      quienColor: opts.humano ? '#1b5e20' : '#264b5d',
+      aviso: opts.aviso || '',
+    });
+
+    return {
+      sonando,
+      pausado: !sonando,
+      reloj: sonando ? '0:11 / 0:19' : '0:19',
+      alternarAudio: () => this.setState({ sonando: !sonando }),
+
+      llamadaSonando,
+      llamadaPausada: !llamadaSonando,
+      avanceLlamada: llamadaSonando ? '58%' : '34%',
+      relojLlamada: llamadaSonando ? '1:18 / 2:14' : '0:46 / 2:14',
+      alternarLlamada: () => this.setState({ llamadaSonando: !llamadaSonando }),
+
+      onda,
+
+      pestanas: [
+        { nombre: 'Abiertas', total: '18', fondo: '#417690', color: '#fff', borde: '#417690' },
+        { nombre: 'Mías', total: '4', fondo: '#fff', color: '#333', borde: '#ccc' },
+        { nombre: 'Sin leer', total: '6', fondo: '#fff', color: '#333', borde: '#ccc' },
+      ],
+
+      conversaciones: [
+        conversacion('Mini Súper Don Beto', 'MB', '#417690', 'Don Beto, ya revisé su lista…', 'texto', '11:06', { activa: true, humano: 'M. Robles' }),
+        conversacion('Abarrotes La Esquina', 'AE', '#1b6b4f', 'Nota de voz · 0:34', 'voz', '11:02', { sinLeer: '2' }),
+        conversacion('La Paloma SA de CV', 'LP', '#96601a', 'Foto de la lista de pedido', 'imagen', '10:47', { sinLeer: '1' }),
+        conversacion('Refresquería Martínez', 'RM', '#747474', 'Llamada · 1:52 · contestada', 'llamada', '10:20', {}),
+        conversacion('Carnicería Doña Lupe', 'CD', '#264b5d', 'me faltaron 5 cajas de galleta', 'texto', '09:58', { humano: 'J. Salas', aviso: 'esperando 2 h' }),
+        conversacion('Tiendita El Ángel', 'TA', '#ba2121', 'Nota de voz · 1:12', 'voz', '09:31', { sinLeer: '3' }),
+        conversacion('Comercial Tepito', 'CT', '#417690', 'Cotización enviada.pdf', 'documento', 'ayer', {}),
+      ],
+
+      accionesHilo: [
+        { texto: 'Ver ficha', fondo: '#fff', color: '#333', borde: '#ccc' },
+        { texto: 'Descargar', fondo: '#fff', color: '#333', borde: '#ccc' },
+        { texto: 'Devolver a la IA', fondo: '#417690', color: '#fff', borde: '#417690' },
+      ],
+
+      llamada: [
+        { tiempo: '0:03', quien: 'IA', color: '#264b5d', texto: 'Don Beto, buenas tardes. Le llamo para confirmar el pedido del jueves.' },
+        { tiempo: '0:11', quien: 'Cliente', color: '#667781', texto: 'Sí, el del aceite y el frijol. Nomás súbale a tres costales el frijol.' },
+        { tiempo: '0:24', quien: 'IA', color: '#264b5d', texto: 'Tres costales de frijol negro entonces. ¿Entrega antes del mediodía?' },
+        { tiempo: '0:38', quien: 'Cliente', color: '#667781', texto: 'Órale, antes de las once mejor.' },
+      ],
+
+      lecturas: [
+        { mensaje: 'Texto · «ya llegó el aceite»', hora: '09:12', intencion: 'consulta stock', confianza: '0.93', fondo: '#d7ecf5', color: '#264b5d' },
+        { mensaje: 'Nota de voz transcrita', hora: '09:14', intencion: 'pedido', confianza: '0.88', fondo: '#d7ecf5', color: '#264b5d' },
+        { mensaje: 'Imagen · lista a mano', hora: '09:15', intencion: 'sin leer', confianza: '—', fondo: '#fff3c4', color: '#6b5900' },
+        { mensaje: 'Llamada · confirmación', hora: '11:02', intencion: 'pedido', confianza: '0.91', fondo: '#d7ecf5', color: '#264b5d' },
+      ],
+
+      retencion: [
+        { medio: 'Texto', plazo: '12 meses' },
+        { medio: 'Audio de notas de voz', plazo: '90 días' },
+        { medio: 'Transcripciones', plazo: '12 meses' },
+        { medio: 'Imágenes y documentos', plazo: '12 meses' },
+        { medio: 'Grabación de llamadas', plazo: '90 días' },
+      ],
+
+      pendiente: [
+        { que: 'Guardar el archivo, no solo el tipo', detalle: 'Hoy una nota de voz entra con el contenido vacío: el audio se pierde.' },
+        { que: 'Traer el medio del proveedor', detalle: 'Sus enlaces caducan; hay que descargar y almacenar aquí.' },
+        { que: 'Transcribir voz a texto', detalle: 'Sin esto no se puede buscar ni responder a una nota de voz.' },
+        { que: 'Registro de llamadas', detalle: 'No existe la tabla; llega con el canal de voz.' },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

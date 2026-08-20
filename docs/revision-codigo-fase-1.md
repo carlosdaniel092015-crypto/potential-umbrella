@@ -42,6 +42,29 @@ aborta. Cuatro tests cubren las cuatro combinaciones.
 - **Caminos del webhook sin test**: 413 por cuerpo grande y 500 ante fallo del proveedor (contrato necesario para que YCloud reintente).
 - **CI sin mínimo privilegio**: `permissions: contents: read` a nivel de workflow.
 
+## Encontrado en el diseño de la Fase 2 (defecto grave de la Fase 1)
+
+**Las ráfagas de mensajes perdían respuestas en silencio.** La guarda que evita
+reenviar tras un fallo posterior al envío preguntaba «¿existe alguna respuesta
+enviada con id posterior a este mensaje?». En el camino real de producción, donde
+el webhook registra los tres mensajes de una ráfaga y solo después el worker los
+procesa, la respuesta al primero ya es posterior a los otros dos: ambos quedaban
+marcados como procesados **sin contestar**. Reproducido con el pipeline en orden
+de producción (`processed`, `already_replied`, `already_replied`) y contra el
+servidor real por HTTP.
+
+No lo detectó ninguna de las revisiones de la Fase 1: los tests recorrían el modo
+en línea, donde los identificadores de entrante y saliente se intercalan y el
+fallo no aparece.
+
+→ **Corregido (D-27)**: cada respuesta apunta al mensaje entrante que contesta
+(`Message.reply_to`), con restricción única sobre las respuestas: crear la fila
+*es* el derecho a responder, así que dos ejecuciones concurrentes del mismo
+mensaje no pueden escribirle dos veces al cliente, y un mensaje distinto de la
+misma ráfaga sí recibe la suya. Cinco pruebas nuevas cubren la ráfaga en orden de
+producción, la atadura respuesta→mensaje, el reintento del mismo mensaje y el
+reintento tras fallo de envío.
+
 ## Encontrado ejecutando, no revisando
 
 La ejecución en vivo destapó un fallo que ningún revisor había previsto: cuando

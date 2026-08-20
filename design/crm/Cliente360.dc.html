@@ -1,0 +1,240 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body {
+      margin: 0;
+      font-family: "Segoe UI", system-ui, Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 0.875rem;
+      color: #333;
+      background: #fff;
+    }
+    a { color: #417893; text-decoration: none; }
+    a:hover { color: #036; }
+  </style>
+</helmet>
+
+<div style="min-height: 1120px; background: #fff; display: flex; flex-direction: column">
+
+  <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 40px; background: #417690; color: #ffc">
+    <div style="display: flex; align-items: baseline; gap: 10px">
+      <span style="font-size: 1.125rem; font-weight: 300; color: #f5dd5d">Plataforma IA WhatsApp</span>
+      <span style="font-size: 0.75rem; color: #c4dce8">Sued Fargesa</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 14px; font-size: 0.75rem; color: #fff">
+      <span>Bienvenida, <strong style="font-weight: 500">M. Robles</strong></span>
+      <a href="#" style="color: #fff">Cerrar sesión</a>
+    </div>
+  </div>
+
+  <div style="padding: 10px 40px; background: #264b5d; color: #c4dce8; font-size: 0.875rem">
+    <a href="#" style="color: #fff">Inicio</a><span style="padding: 0 4px">›</span>
+    <a href="#" style="color: #fff">CRM</a><span style="padding: 0 4px">›</span>
+    <a href="#" style="color: #fff">Clientes</a><span style="padding: 0 4px">›</span>
+    <span>Mini Súper Don Beto</span>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 0; padding: 20px 40px 40px">
+
+    <!-- Identidad del cliente + acciones -->
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; margin-bottom: 6px">
+      <div style="display: flex; flex-direction: column; gap: 4px">
+        <h1 style="margin: 0; font-size: 1.25rem; font-weight: 300; color: #000">Mini Súper Don Beto</h1>
+        <div style="display: flex; align-items: center; gap: 10px; font-size: 0.8125rem; color: #666">
+          <span style="font-variant-numeric: tabular-nums">+52 1 555 000 1111</span>
+          <span>·</span>
+          <span>WhatsApp</span>
+          <span>·</span>
+          <span>Cliente desde marzo 2025</span>
+        </div>
+      </div>
+      <div style="display: flex; gap: 8px">
+        <a href="#" style="border-radius: 15px; padding: 3px 12px; background: #747474; color: #fff; font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.5rem">Historial completo</a>
+        <a href="#" style="border-radius: 15px; padding: 3px 12px; background: #747474; color: #fff; font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.5rem">Nueva oportunidad</a>
+      </div>
+    </div>
+
+    <!-- Etiquetas -->
+    <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 20px; flex-wrap: wrap">
+      <sc-for list="{{etiquetas}}" as="e" hint-placeholder-count="4">
+        <span style="padding: 2px 8px; background: #f8f8f8; border: 1px solid #ccc; border-radius: 2px; font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.5px; color: #444">{{e.texto}}</span>
+      </sc-for>
+      <a href="#" style="font-size: 0.75rem">+ etiqueta</a>
+    </div>
+
+    <!-- Cifras de la relación. Todas viven en la base propia salvo lo marcado. -->
+    <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 30px">
+      <sc-for list="{{cifras}}" as="c" hint-placeholder-count="4">
+        <div style="display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; background: #f8f8f8; border: 1px solid #e8e8e8">
+          <span style="font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.5px; color: #666">{{c.etiqueta}}</span>
+          <span style="font-size: 1.125rem; font-weight: 500; color: #000; font-variant-numeric: tabular-nums">{{c.valor}}</span>
+          <span style="font-size: 0.6875rem; color: #666">{{c.nota}}</span>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 30px; align-items: start">
+
+      <!-- Columna izquierda -->
+      <div style="display: flex; flex-direction: column; gap: 30px">
+
+        <!-- Oportunidades: datos propios -->
+        <div style="display: flex; flex-direction: column; gap: 0">
+          <div style="padding: 8px; background: #417690; color: #fff; font-size: 0.8125rem; font-weight: 400">Oportunidades</div>
+          <div style="display: grid; grid-template-columns: 1.1fr 2.4fr 1fr 1fr 1fr; border: 1px solid #e8e8e8; border-top: none">
+            <sc-for list="{{cabecerasOportunidades}}" as="h" hint-placeholder-count="5">
+              <div style="padding: 5px 10px; font-size: 0.6875rem; text-transform: uppercase; color: #666; background: #f8f8f8; border-bottom: 1px solid #e8e8e8; font-weight: 500">{{h.texto}}</div>
+            </sc-for>
+            <sc-for list="{{oportunidades}}" as="o" hint-placeholder-count="3">
+              <div style="padding: 8px; font-size: 0.8125rem; line-height: 1rem; border-bottom: 1px solid #e8e8e8; background: {{o.fondo}}"><a href="#">{{o.etapa}}</a></div>
+              <div style="padding: 8px; font-size: 0.8125rem; line-height: 1rem; border-bottom: 1px solid #e8e8e8; background: {{o.fondo}}">{{o.interes}}</div>
+              <div style="padding: 8px; font-size: 0.8125rem; line-height: 1rem; border-bottom: 1px solid #e8e8e8; background: {{o.fondo}}; font-variant-numeric: tabular-nums">{{o.monto}}</div>
+              <div style="padding: 8px; font-size: 0.8125rem; line-height: 1rem; border-bottom: 1px solid #e8e8e8; background: {{o.fondo}}">{{o.atiende}}</div>
+              <div style="padding: 8px; font-size: 0.8125rem; line-height: 1rem; border-bottom: 1px solid #e8e8e8; background: {{o.fondo}}"><a href="#">{{o.origen}}</a></div>
+            </sc-for>
+          </div>
+        </div>
+
+        <!-- Pedidos: NO viven aquí. Se consultan a Odoo en vivo. -->
+        <div style="display: flex; flex-direction: column; gap: 0">
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px; background: #417690; color: #fff; font-size: 0.8125rem; font-weight: 400">
+            <span>Pedidos y facturación</span>
+            <span style="display: inline-flex; align-items: center; gap: 5px; font-size: 0.6875rem; color: #c4dce8; text-transform: uppercase; letter-spacing: 0.5px">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M21 12a9 9 0 1 1-2.6-6.4"></path><path d="M21 3v6h-6"></path>
+              </svg>
+              consultado a Odoo · 0.8 s
+            </span>
+          </div>
+
+          <!-- Aviso de procedencia: este bloque no se guarda en la base propia -->
+          <div style="display: flex; align-items: flex-start; gap: 8px; padding: 8px 10px; background: #ccefff; border-bottom: 1px solid #e8e8e8; font-size: 0.75rem; color: #264b5d">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 1px" aria-hidden="true">
+              <circle cx="12" cy="12" r="9"></circle><path d="M12 8h.01"></path><path d="M11 12h1v4h1"></path>
+            </svg>
+            <span>Datos en vivo del ERP. No se replican en la base del CRM: si Odoo no responde, este bloque avisa, el valor de vida se muestra con la última cifra conocida y el resto de la ficha sigue funcionando.</span>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1.2fr 1.2fr 1fr 1.4fr; border: 1px solid #e8e8e8; border-top: none">
+            <sc-for list="{{cabecerasPedidos}}" as="h" hint-placeholder-count="4">
+              <div style="padding: 5px 10px; font-size: 0.6875rem; text-transform: uppercase; color: #666; background: #f8f8f8; border-bottom: 1px solid #e8e8e8; font-weight: 500">{{h.texto}}</div>
+            </sc-for>
+            <sc-for list="{{pedidos}}" as="p" hint-placeholder-count="4">
+              <div style="padding: 8px; font-size: 0.8125rem; line-height: 1rem; border-bottom: 1px solid #e8e8e8; background: {{p.fondo}}; font-variant-numeric: tabular-nums">{{p.folio}}</div>
+              <div style="padding: 8px; font-size: 0.8125rem; line-height: 1rem; border-bottom: 1px solid #e8e8e8; background: {{p.fondo}}">{{p.fecha}}</div>
+              <div style="padding: 8px; font-size: 0.8125rem; line-height: 1rem; border-bottom: 1px solid #e8e8e8; background: {{p.fondo}}; font-variant-numeric: tabular-nums">{{p.importe}}</div>
+              <div style="padding: 8px; font-size: 0.8125rem; line-height: 1rem; border-bottom: 1px solid #e8e8e8; background: {{p.fondo}}">{{p.estado}}</div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+
+      <!-- Columna derecha: conversación -->
+      <div style="display: flex; flex-direction: column; gap: 30px">
+
+        <div style="display: flex; flex-direction: column; gap: 0">
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px; background: #417690; color: #fff; font-size: 0.8125rem; font-weight: 400">
+            <span>Conversación</span>
+            <span style="font-size: 0.6875rem; color: #c4dce8">ventana 24 h abierta</span>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 10px; padding: 12px; border: 1px solid #e8e8e8; border-top: none; background: #fff">
+            <sc-for list="{{mensajes}}" as="m" hint-placeholder-count="4">
+              <div style="display: flex; flex-direction: column; gap: 3px; align-self: {{m.lado}}; max-width: 88%">
+                <div style="padding: 7px 10px; background: {{m.fondo}}; border: 1px solid {{m.borde}}; border-radius: 4px; font-size: 0.8125rem; line-height: 1.15rem; color: #333">{{m.texto}}</div>
+                <span style="font-size: 0.6875rem; color: #666; align-self: {{m.lado}}">{{m.meta}}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <!-- Lo que la IA infirió, con su trazabilidad -->
+        <div style="display: flex; flex-direction: column; gap: 0">
+          <div style="padding: 8px; background: #417690; color: #fff; font-size: 0.8125rem; font-weight: 400">Lectura de la IA</div>
+          <div style="display: flex; flex-direction: column; gap: 0; border: 1px solid #e8e8e8; border-top: none">
+            <sc-for list="{{lectura}}" as="l" hint-placeholder-count="4">
+              <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 8px; border-bottom: 1px solid #e8e8e8">
+                <span style="font-size: 0.75rem; color: #666">{{l.campo}}</span>
+                <span style="font-size: 0.8125rem; color: #333; text-align: right">{{l.valor}}</span>
+              </div>
+            </sc-for>
+            <div style="padding: 8px; background: #f8f8f8; font-size: 0.6875rem; color: #666; font-family: ui-monospace, monospace">
+              trace 7f3a9c21
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{}'>
+class Component extends DCLogic {
+  renderVals() {
+    const ALT = '#f8f8f8';
+    const BLANCO = '#fff';
+
+    return {
+      cabecerasOportunidades: [
+        { texto: 'Etapa' },
+        { texto: 'Interés' },
+        { texto: 'Monto' },
+        { texto: 'Atiende' },
+        { texto: 'Origen' },
+      ],
+      cabecerasPedidos: [
+        { texto: 'Pedido' },
+        { texto: 'Fecha' },
+        { texto: 'Importe' },
+        { texto: 'Estado en Odoo' },
+      ],
+      etiquetas: [
+        { texto: 'mayoreo' },
+        { texto: 'ruta centro' },
+        { texto: 'paga a 15 días' },
+        { texto: 'alto volumen' },
+      ],
+      cifras: [
+        // El valor de vida y el ticket salen de sumar los pedidos del ERP: se
+        // recalculan al consultar, no son un dato propio del CRM.
+        { etiqueta: 'Valor de vida', valor: '$427,000', nota: 'suma del ERP · 15 pedidos' },
+        { etiqueta: 'Ticket promedio', valor: '$28,467', nota: 'calculado' },
+        { etiqueta: 'Última interacción', valor: 'hace 40 min', nota: 'propio · WhatsApp' },
+        { etiqueta: 'Tono reciente', valor: 'Positivo', nota: 'propio · 0.72' },
+      ],
+      oportunidades: [
+        { etapa: 'Negociación', interes: 'Aceite 1-2-3, mayonesa, frijol', monto: '$14,200', atiende: 'IA', origen: 'Conv. 3182', fondo: BLANCO },
+        { etapa: 'Ganado', interes: 'Surtido mensual agosto', monto: '$31,900', atiende: 'M. Robles', origen: 'Conv. 2904', fondo: ALT },
+        { etapa: 'Perdido', interes: 'Refresco 30 rejas', monto: '$19,400', atiende: 'J. Salas', origen: 'Conv. 2755', fondo: BLANCO },
+      ],
+      pedidos: [
+        { folio: 'SO-44902', fecha: '20 ago 2026', importe: '$14,200', estado: 'Confirmado', fondo: BLANCO },
+        { folio: 'SO-44812', fecha: '18 ago 2026', importe: '$31,900', estado: 'Confirmado', fondo: ALT },
+        { folio: 'SO-44190', fecha: '02 ago 2026', importe: '$28,450', estado: 'Facturado', fondo: BLANCO },
+        { folio: 'SO-43877', fecha: '19 jul 2026', importe: '$26,700', estado: 'Facturado', fondo: ALT },
+      ],
+      mensajes: [
+        { texto: 'buen dia, ya llego el aceite 1-2-3 o sigue agotado', meta: 'Cliente · 09:12', lado: 'flex-start', fondo: '#f8f8f8', borde: '#e8e8e8' },
+        { texto: 'Buen día. Sí, ya hay existencia de aceite 1-2-3 en presentación de galón. ¿Cuántos necesitas?', meta: 'IA · agente ventas · 09:12', lado: 'flex-end', fondo: '#ccefff', borde: '#a9dcf5' },
+        { texto: 'kiero levantar pedido: 10 galones de aceite, 5 cajas de mayonesa chica y 2 costales de frijol negro. entrega el jueves si se puede 🙏', meta: 'Cliente · 09:14', lado: 'flex-start', fondo: '#f8f8f8', borde: '#e8e8e8' },
+        { texto: 'Anotado. Te confirmo disponibilidad para el jueves y te paso el total antes de cerrarlo.', meta: 'IA · agente ventas · 09:14', lado: 'flex-end', fondo: '#ccefff', borde: '#a9dcf5' },
+      ],
+      lectura: [
+        { campo: 'Intención', valor: 'pedido' },
+        { campo: 'Confianza', valor: '0.88' },
+        { campo: 'Agente elegido', valor: 'ventas' },
+        { campo: 'Oportunidad', valor: 'creada · #1184' },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

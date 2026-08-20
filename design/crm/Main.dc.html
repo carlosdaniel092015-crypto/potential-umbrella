@@ -1,0 +1,299 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body {
+      margin: 0;
+      font-family: "Segoe UI", system-ui, Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 0.875rem;
+      color: #333;
+      background: #fff;
+    }
+    a { color: #417893; text-decoration: none; }
+    a:hover { color: #036; }
+    .col-scroll::-webkit-scrollbar { width: 8px; }
+    .col-scroll::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
+  </style>
+</helmet>
+
+<div style="min-height: 980px; background: #fff; display: flex; flex-direction: column">
+
+  <!-- Header del panel: padding 10px 40px, bg #417690, color #ffc (base.css) -->
+  <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 40px; background: #417690; color: #ffc">
+    <div style="display: flex; align-items: baseline; gap: 10px">
+      <span style="font-size: 1.125rem; font-weight: 300; color: #f5dd5d">Plataforma IA WhatsApp</span>
+      <span style="font-size: 0.75rem; color: #c4dce8">Sued Fargesa</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 14px; font-size: 0.75rem; color: #fff">
+      <span>Bienvenida, <strong style="font-weight: 500">M. Robles</strong></span>
+      <a href="#" style="color: #fff">Ver sitio</a>
+      <a href="#" style="color: #fff">Cambiar contraseña</a>
+      <a href="#" style="color: #fff">Cerrar sesión</a>
+    </div>
+  </div>
+
+  <!-- Breadcrumbs: padding 10px 40px, bg #264b5d, fg #c4dce8 -->
+  <div style="padding: 10px 40px; background: #264b5d; color: #c4dce8; font-size: 0.875rem">
+    <a href="#" style="color: #fff">Inicio</a>
+    <span style="padding: 0 4px">›</span>
+    <a href="#" style="color: #fff">CRM</a>
+    <span style="padding: 0 4px">›</span>
+    <span>Oportunidades</span>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 0; padding: 20px 40px 40px">
+
+    <!-- Título + herramientas de objeto -->
+    <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 14px">
+      <h1 style="margin: 0; font-size: 1.25rem; font-weight: 300; color: #000">Oportunidades</h1>
+      <div style="display: flex; gap: 8px">
+        <a href="#" style="border-radius: 15px; padding: 3px 12px; background: #747474; color: #fff; font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.5rem">Ver como lista</a>
+        <a href="#" style="border-radius: 15px; padding: 3px 12px; background: #747474; color: #fff; font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.5rem">Añadir oportunidad</a>
+      </div>
+    </div>
+
+    <!-- Barra de filtros: sigue el patrón de changelist (bg #f8f8f8, hairline #e8e8e8) -->
+    <div style="display: flex; align-items: center; gap: 20px; padding: 10px 12px; background: #f8f8f8; border: 1px solid #e8e8e8; margin-bottom: 20px; flex-wrap: wrap">
+      <div style="display: flex; align-items: center; gap: 6px">
+        <span style="font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.5px; color: #666">Vendedor</span>
+        <span style="font-size: 0.8125rem; padding: 3px 8px; background: #fff; border: 1px solid #ccc; border-radius: 4px">Todos</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 6px">
+        <span style="font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.5px; color: #666">Canal</span>
+        <span style="font-size: 0.8125rem; padding: 3px 8px; background: #fff; border: 1px solid #ccc; border-radius: 4px">WhatsApp</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 6px">
+        <span style="font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.5px; color: #666">Atiende</span>
+        <span style="font-size: 0.8125rem; padding: 3px 8px; background: #fff; border: 1px solid #ccc; border-radius: 4px">Todos</span>
+      </div>
+      <div style="flex-grow: 1"></div>
+      <div style="display: flex; align-items: center; gap: 8px">
+        <span style="display: inline-flex; align-items: center; gap: 5px; font-size: 0.75rem; color: #666">
+          <span style="width: 8px; height: 8px; border-radius: 50%; background: #f5dd5d; border: 1px solid #d4bc3c"></span>
+          sin movimiento 24 h
+        </span>
+        <span style="display: inline-flex; align-items: center; gap: 5px; font-size: 0.75rem; color: #666">
+          <span style="width: 8px; height: 8px; border-radius: 50%; background: #ba2121"></span>
+          sin movimiento 48 h
+        </span>
+      </div>
+    </div>
+
+    <!-- Tablero: una columna por etapa. Grid con gap para que sobreviva a edición directa. -->
+    <div style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; align-items: start">
+
+      <sc-for list="{{columnas}}" as="col" hint-placeholder-count="6">
+        <div style="display: flex; flex-direction: column; gap: 0; background: #fff; border: 1px solid #e8e8e8">
+
+          <!-- Cabecera de columna: mismo tratamiento que .module h2 (bg #417690, 13px, peso 400, padding 8px) -->
+          <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding: 8px; background: {{col.color}}; color: #fff; font-size: 0.8125rem; font-weight: 400">
+            <span>{{col.nombre}}</span>
+            <span style="font-size: 0.6875rem; color: #c4dce8">{{col.total}}</span>
+          </div>
+
+          <!-- Probabilidad de cierre de la etapa -->
+          <div style="padding: 5px 10px; background: #f8f8f8; border-bottom: 1px solid #e8e8e8; font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.5px; color: #666">
+            {{col.probabilidad}}
+          </div>
+
+          <div class="col-scroll" style="display: flex; flex-direction: column; gap: 8px; padding: 8px; min-height: 120px">
+            <sc-for list="{{col.tarjetas}}" as="t" hint-placeholder-count="3">
+              <div style="display: flex; flex-direction: column; gap: 6px; padding: 8px; background: #fff; border: 1px solid #e8e8e8; border-left: 3px solid {{t.marca}}">
+
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 6px">
+                  <a href="#" style="font-size: 0.8125rem; font-weight: 500; line-height: 1rem">{{t.cliente}}</a>
+                  <sc-if value="{{t.estancada}}" hint-placeholder-val="{{true}}">
+                    <span title="Sin movimiento" style="flex-shrink: 0; width: 8px; height: 8px; margin-top: 4px; border-radius: 50%; background: {{t.marca}}"></span>
+                  </sc-if>
+                </div>
+
+                <div style="font-size: 0.75rem; color: #444; line-height: 1rem">{{t.producto}}</div>
+
+                <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 6px">
+                  <span style="font-size: 0.8125rem; font-weight: 500; color: #000; font-variant-numeric: tabular-nums">{{t.monto}}</span>
+                  <span title="Último movimiento" style="font-size: 0.6875rem; color: #666">{{t.antiguedad}}</span>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap">
+                  <!-- Quién la lleva: IA o persona -->
+                  <sc-if value="{{t.ia}}" hint-placeholder-val="{{true}}">
+                    <span style="display: inline-flex; align-items: center; gap: 4px; padding: 1px 6px; background: #ccefff; color: #264b5d; font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.5px; border-radius: 2px">
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <rect x="4" y="8" width="16" height="12" rx="2"></rect>
+                        <path d="M12 4v4"></path><circle cx="9" cy="14" r="1"></circle><circle cx="15" cy="14" r="1"></circle>
+                      </svg>
+                      IA
+                    </span>
+                  </sc-if>
+                  <sc-if value="{{t.humano}}" hint-placeholder-val="{{true}}">
+                    <span style="display: inline-flex; align-items: center; gap: 4px; padding: 1px 6px; background: #e4e4e4; color: #333; font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.5px; border-radius: 2px">
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"></path>
+                      </svg>
+                      {{t.vendedor}}
+                    </span>
+                  </sc-if>
+                  <sc-if value="{{t.confianza}}" hint-placeholder-val="{{true}}">
+                    <span title="Confianza de la clasificación" style="font-size: 0.6875rem; color: #666; font-variant-numeric: tabular-nums">conf. {{t.confianza}}</span>
+                  </sc-if>
+                </div>
+              </div>
+            </sc-for>
+
+            <sc-if value="{{col.vacia}}" hint-placeholder-val="{{true}}">
+              <div style="padding: 14px 8px; font-size: 0.75rem; color: #666; text-align: center">Sin oportunidades</div>
+            </sc-if>
+          </div>
+
+          <!-- Pie de columna con el monto acumulado -->
+          <div style="padding: 5px 10px; border-top: 1px solid #e8e8e8; background: #f8f8f8; font-size: 0.75rem; color: #444; display: flex; justify-content: space-between; gap: 6px">
+            <span>{{col.pie}}</span>
+            <span style="font-variant-numeric: tabular-nums; font-weight: 500">{{col.suma}}</span>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+
+    <!-- Nota de paginación, igual que en un changelist -->
+    <div style="margin-top: 18px; font-size: 0.8125rem; color: #666">
+      {{resumen}}
+    </div>
+  </div>
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{}'>
+class Component extends DCLogic {
+  renderVals() {
+    const AMBAR = '#f5dd5d';
+    const ROJO = '#ba2121';
+    const NEUTRO = '#e8e8e8';
+
+    // El aviso se deriva de las horas sin movimiento, no se pone a mano: la
+    // leyenda del tablero (24 h ámbar, 48 h rojo) y los puntos tienen que decir
+    // lo mismo.
+    const tarjeta = (cliente, producto, monto, horas, opts = {}) => {
+      const aviso = horas >= 48 ? 'rojo' : horas >= 24 ? 'ambar' : '';
+      const dias = Math.round(horas / 24);
+      const antiguedad =
+        horas < 1
+          ? 'hace ' + Math.round(horas * 60) + ' min'
+          : horas < 24
+            ? 'hace ' + Math.round(horas) + ' h'
+            : 'hace ' + dias + (dias === 1 ? ' día' : ' días');
+      return {
+        cliente,
+        producto,
+        monto,
+        antiguedad,
+        ia: opts.vendedor ? false : true,
+        humano: opts.vendedor ? true : false,
+        vendedor: opts.vendedor || '',
+        confianza: opts.confianza || '',
+        estancada: Boolean(aviso),
+        marca: aviso === 'rojo' ? ROJO : aviso === 'ambar' ? AMBAR : NEUTRO,
+      };
+    };
+
+    const columnas = [
+      {
+        nombre: 'Nuevo',
+        color: '#417690',
+        probabilidad: 'cierre 10%',
+        pie: 'Total',
+        tarjetas: [
+          tarjeta('Abarrotes La Esquina', '3 bultos azúcar estándar', '$8,940', 0.2, { confianza: '0.94' }),
+          tarjeta('La Paloma SA de CV', 'Jabón Zote, Suavitel 850, Cloralex', '$21,750', 2, { confianza: '0.91' }),
+          tarjeta('Súper Los Pinos', 'Papel higiénico, servilletas', '$11,300', 5, { confianza: '0.86' }),
+        ],
+      },
+      {
+        nombre: 'Contactado',
+        color: '#417690',
+        probabilidad: 'cierre 25%',
+        pie: 'Total',
+        tarjetas: [
+          tarjeta('Refresquería Martínez', '30 rejas de refresco', '$24,900', 20, { confianza: '0.96' }),
+          tarjeta('Tiendita El Ángel', 'Galletas surtido, papel higiénico', '$6,480', 22, { vendedor: 'J. Salas' }),
+        ],
+      },
+      {
+        nombre: 'Calificado',
+        color: '#417690',
+        probabilidad: 'cierre 45%',
+        pie: 'Total',
+        tarjetas: [
+          tarjeta('Carnicería Doña Lupe', 'Tambo de aceite, servilletas', '$18,300', 30, { vendedor: 'J. Salas' }),
+          tarjeta('Súper del Centro', 'Cloro 20 L, detergente en polvo', '$41,200', 8, { vendedor: 'M. Robles' }),
+        ],
+      },
+      {
+        nombre: 'Propuesta enviada',
+        color: '#417690',
+        probabilidad: 'cierre 60%',
+        pie: 'Total',
+        tarjetas: [
+          tarjeta('Distribuidora del Valle', 'Surtido completo, 20 líneas', '$164,500', 26, { vendedor: 'M. Robles' }),
+          tarjeta('Abarrotes Hermanos Cruz', 'Atún Dolores 140 g, 50 cajas', '$38,900', 72, { vendedor: 'J. Salas' }),
+        ],
+      },
+      {
+        nombre: 'Negociación',
+        color: '#264b5d',
+        probabilidad: 'cierre 80%',
+        pie: 'Total',
+        tarjetas: [
+          tarjeta('Mini Súper Don Beto', 'Aceite 1-2-3, mayonesa, frijol', '$14,200', 0.7, { confianza: '0.88' }),
+          tarjeta('Comercial Tepito', 'Reposición mensual al doble', '$212,000', 50, { vendedor: 'M. Robles' }),
+          tarjeta('Minisúper La Central', 'Shampoo Caprice, acondicionador', '$22,400', 28, { vendedor: 'J. Salas' }),
+        ],
+      },
+      {
+        nombre: 'Cerradas hoy',
+        color: '#264b5d',
+        probabilidad: 'resultado final',
+        pie: 'Ganado',
+        tarjetas: [
+          tarjeta('Tienda La Guadalupana', 'Ganada · pedido SO-44870', '$54,300', 3, { vendedor: 'M. Robles' }),
+          tarjeta('Abarrotes El Puente', 'Perdida · precio de competencia', '$42,500', 6, { vendedor: 'J. Salas' }),
+        ],
+      },
+    ];
+
+    // Los totales se calculan de las tarjetas: un pie que no cuadra con lo que
+    // se ve encima destruye la confianza en el tablero entero.
+    const aNumero = (texto) => Number(texto.replace(/[^0-9]/g, ''));
+    const dinero = (n) => '$' + n.toLocaleString('en-US');
+
+    const preparadas = columnas.map((c) => {
+      const esCerradas = c.pie === 'Ganado';
+      const montos = c.tarjetas.map((t) => aNumero(t.monto));
+      // En cerradas solo se suma lo ganado: mezclar ganado y perdido no significa nada.
+      const suma = esCerradas ? montos[0] : montos.reduce((a, b) => a + b, 0);
+      return {
+        ...c,
+        total: String(c.tarjetas.length),
+        suma: dinero(suma),
+        vacia: c.tarjetas.length === 0,
+      };
+    });
+
+    const abiertas = preparadas
+      .filter((c) => c.pie !== 'Ganado')
+      .reduce((n, c) => n + c.tarjetas.length, 0);
+
+    return {
+      columnas: preparadas,
+      resumen: abiertas + ' oportunidades abiertas · 2 cerradas hoy',
+    };
+  }
+}
+</script>
+</body>
+</html>

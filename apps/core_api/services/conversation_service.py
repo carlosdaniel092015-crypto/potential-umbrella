@@ -147,19 +147,48 @@ class ConversationService:
         return await sync_to_async(self._load_work_sync)(message_id)
 
     @staticmethod
-    def _find_sent_outbound_sync(conversation_id: int, after_message_id: int) -> bool:
-        """¿Ya se envió una respuesta para este mensaje? Evita reenviar al
-        cliente cuando un reintento reejecuta el pipeline tras un fallo posterior
-        al envío."""
-        return Message.objects.filter(
-            conversation_id=conversation_id,
-            direction=MessageDirection.OUTBOUND,
-            status=MessageStatus.SENT,
-            id__gt=after_message_id,
-        ).exists()
+    def _claim_outbound_sync(
+        inbound_id: int, conversation_id: int, content: str, agent_id: int | None
+    ) -> tuple[int, bool]:
+        """Reclama el derecho a responder a un entrante concreto.
 
-    async def has_sent_reply_after(self, conversation_id: int, message_id: int) -> bool:
-        return await sync_to_async(self._find_sent_outbound_sync)(conversation_id, message_id)
+        Devuelve (id del saliente, ya_enviado). Crear la fila es el reclamo: el
+        índice único sobre `reply_to` impide que dos ejecuciones concurrentes
+        respondan al mismo mensaje. Si ya existe una respuesta ENVIADA, se avisa
+        para no escribirle al cliente por segunda vez; si existe pero nunca
+        salió, se reutiliza y se reintenta el envío.
+        """
+        try:
+            with transaction.atomic():
+                message = Message.objects.create(
+                    conversation_id=conversation_id,
+                    direction=MessageDirection.OUTBOUND,
+                    content=content,
+                    status=MessageStatus.PENDING,
+                    agent_id=agent_id,
+                    reply_to_id=inbound_id,
+                )
+                return message.id, False
+        except IntegrityError:
+            existing = Message.objects.filter(
+                reply_to_id=inbound_id, direction=MessageDirection.OUTBOUND
+            ).first()
+            if existing is None:  # pragma: no cover - contradice el constraint
+                raise
+            if existing.status == MessageStatus.SENT:
+                return existing.id, True
+            existing.content = content
+            existing.status = MessageStatus.PENDING
+            existing.agent_id = agent_id
+            existing.save(update_fields=["content", "status", "agent"])
+            return existing.id, False
+
+    async def claim_outbound(
+        self, inbound_id: int, conversation_id: int, content: str, agent_id: int | None = None
+    ) -> tuple[int, bool]:
+        return await sync_to_async(self._claim_outbound_sync)(
+            inbound_id, conversation_id, content, agent_id
+        )
 
     @staticmethod
     def _recent_history_sync(conversation_id: int, limit: int, exclude_message_id: int) -> list:
@@ -183,26 +212,6 @@ class ConversationService:
     ) -> list[dict]:
         return await sync_to_async(self._recent_history_sync)(
             conversation_id, limit, exclude_message_id
-        )
-
-    @staticmethod
-    def _register_outbound_sync(
-        conversation_id: int, content: str, agent_id: int | None
-    ) -> int:
-        message = Message.objects.create(
-            conversation_id=conversation_id,
-            direction=MessageDirection.OUTBOUND,
-            content=content,
-            status=MessageStatus.PENDING,
-            agent_id=agent_id,
-        )
-        return message.id
-
-    async def register_outbound(
-        self, conversation_id: int, content: str, agent_id: int | None = None
-    ) -> int:
-        return await sync_to_async(self._register_outbound_sync)(
-            conversation_id, content, agent_id
         )
 
     @staticmethod
