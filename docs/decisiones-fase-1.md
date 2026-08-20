@@ -27,7 +27,12 @@ Cada decisión resuelve una ambigüedad o contradicción detectada en la
 | D-19 | **Semántica de errores del webhook** | Fallo antes o durante el envío → 500 para que YCloud reintente. Fallo **después** de un envío exitoso → se registra como crítico y se responde 200: propagar el error haría reenviar un mensaje ya entregado. El mensaje queda en `PROCESSING` para conciliación manual. | Implementado |
 | D-20 | **Límite de cuerpo antes de bufferizar** | Rechazo por `Content-Length` y corte durante el streaming: `request.body()` no tiene tope y permitía agotar memoria sin autenticarse. | Implementado |
 | D-27 | **Una respuesta por mensaje, atada a él** | `Message.reply_to` apunta al entrante que se contesta, con restricción única sobre las respuestas. Crear la fila **es** el derecho a responder: dos ejecuciones del mismo mensaje no escriben dos veces, y otro mensaje de la misma ráfaga sí recibe la suya. Sustituye la guarda «¿hay respuesta posterior a este id?», que descartaba en silencio los mensajes 2..N de cada ráfaga en el camino de producción. | Implementado |
-| D-28 | **Turno por conversación** | Un mensaje no se procesa mientras quede otro anterior del mismo cliente sin terminar: devuelve `esperando_turno` y el worker lo reintenta en 2 s (con reintentos propios, sin gastar los de los fallos reales). Así cada respuesta ve las anteriores y salen en orden. El bloqueo caduca a los 15 minutos, para que un mensaje abandonado no atasque la conversación para siempre; el turno es por conversación, así que otro cliente nunca espera detrás. Cierra el pendiente que la Fase 1 dejó declarado en D-05. | Implementado |
+| D-28 | **Turno por conversación** | Un mensaje no se procesa mientras quede otro anterior del mismo cliente sin terminar (`RECEIVED`, `FAILED`, o `PROCESSING` con reclamo vigente): devuelve `esperando_turno` y el worker publica una tarea nueva con espera creciente hasta 30 s. Así cada respuesta ve las anteriores y salen en orden; el turno es por conversación, así que otro cliente nunca espera detrás. **El progreso lo garantiza el worker, no el margen**: al agotar su presupuesto de espera procesa sin el predecesor. Cierra el pendiente D-05. | Implementado |
+| D-29 | **Nunca `self.retry` con `autoretry_for`** | El turno reencola con `apply_async` (tarea nueva, contador propio) y la tarea no está enlazada. Motivo: `Task.retry(max_retries=…)` fija `override_max_retries` en el singleton de la tarea del proceso worker y, combinado con `autoretry_for`, queda pegado y altera el límite de reintentos de los fallos reales posteriores. Un test estructural vigila la firma. | Implementado |
+| D-30 | **`processing_started_at`** | El margen que libera un mensaje abandonado se mide desde el reclamo, no desde `created_at`: con `created_at`, drenar un backlog viejo desactivaba el turno para toda la ráfaga. | Implementado |
+| D-31 | **El historial solo contiene lo que el cliente vio** | `recent_history` filtra los salientes por `SENT` y ordena por id. Una respuesta sin enviar metida en el prompt hacía que el bot diera por leído lo que nunca llegó. | Implementado |
+| D-32 | **El reintento reenvía, no regenera** | Si ya existe un texto generado y sin enviar para ese mensaje, se reenvía tal cual. Regenerarlo con el modelo produciría otra redacción, y ante un fallo de envío ambiguo el cliente vería dos versiones distintas. | Implementado |
+| D-33 | **Rescate de mensajes con la tarea perdida** | `manage.py reencolar_pendientes` devuelve a la cola los entrantes en `received` viejos y los `processing` abandonados. Debe programarse cada pocos minutos: sin él, un mensaje cuya tarea se perdió bloquea su conversación. | Implementado (requiere programarse) |
 
 ## Matriz de versiones congelada (uv.lock)
 
@@ -39,13 +44,15 @@ celery 5.6 · redis-py 6.4 · psycopg 3.3 · pydantic 2.13 · gunicorn 26.1
 - Confirmar contrato real de YCloud (firma + payload + endpoint de envío) con la cuenta real.
 - MFA del panel (paquete concreto), rate limiting en el borde, roles Postgres separados, pseudonimización completa de PII (hoy: máscara en logs propios y cola sin PII).
 - Agrupar una ráfaga en una sola respuesta (debounce). El turno por conversación (D-28) ya evita respuestas cruzadas y descoordinadas; agrupar además varios mensajes en una única contestación gasta presupuesto de latencia y no se decide sin medir el p95 primero.
-- Dataset etiquetado de intenciones + suite de golden conversations (QA §3.2) al llegar el Determinador LLM.
+- Suite de conversaciones de referencia (QA §3.2). El dataset etiquetado y el medidor de enrutamiento ya existen: ver [medicion-enrutamiento.md](medicion-enrutamiento.md).
 - Conciliación automática de mensajes que quedan en `PROCESSING` por fallo de persistencia post-envío (hoy: alerta por log crítico).
 - Breaker con estado compartido en Redis cuando haya varias réplicas (hoy: por proceso, cacheado por worker).
+- **El turno se deriva del `id` autoincremental, que es orden de INSERT y no de COMMIT.** En Postgres, dos webhooks concurrentes del mismo contacto pueden hacer que el predecesor sea invisible para el sucesor, e invertir el orden. No se reproduce en la suite porque los tests corren en SQLite, que serializa las escrituras. Requiere derivar el turno de un valor asignado bajo bloqueo de la conversación (`select_for_update` + contador propio).
+- Programar `reencolar_pendientes` (Celery beat o cron) en el despliegue: sin él, un mensaje cuya tarea se perdió bloquea su conversación hasta que el worker agote el presupuesto de espera.
 
 ## Verificación (bucle ejecutado, no inferido)
 
-- **109 tests** (63 unitarios + 33 de integración + 13 de evaluación) en verde, 100 % offline.
+- **120 tests** (69 unitarios + 38 de integración + 13 de evaluación) en verde, 100 % offline.
 - **93 %** de cobertura de ramas.
 - **mypy** limpio en 58 archivos con el plugin de django-stubs.
 - **Ejecución real** con base limpia: salud OK, texto → `processed/ventas`, duplicado → `duplicate`, audio → mensaje de capacidad, callback de estado → `ignored`, JSON roto → 400, cuerpo de 300 KB → 413, webhook de voz → 501. Estado final en base sin mensajes zombi.

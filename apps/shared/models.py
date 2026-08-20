@@ -131,6 +131,11 @@ class Message(models.Model):
     reply_to = models.ForeignKey(
         "self", on_delete=models.SET_NULL, null=True, blank=True, related_name="replies"
     )
+    # Cuándo se reclamó para procesar. El margen que libera un mensaje
+    # abandonado se mide desde aquí y no desde `created_at`: con `created_at`,
+    # drenar un backlog viejo (worker caído) desactivaba el turno para toda la
+    # ráfaga, que es justo cuando el orden más importa.
+    processing_started_at = models.DateTimeField(null=True, blank=True)
     metadata = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 

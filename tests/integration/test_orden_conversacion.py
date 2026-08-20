@@ -123,31 +123,19 @@ def test_el_orden_de_las_respuestas_sigue_al_de_las_preguntas(entorno):
     assert respuestas == entrantes, "las respuestas salieron en otro orden"
 
 
-def test_un_mensaje_abandonado_no_bloquea_la_conversacion_para_siempre(entorno):
-    """Si un mensaje quedó a medias (el caso de fallo al persistir tras enviar),
-    los siguientes no pueden quedar atascados eternamente detrás de él."""
+def test_se_puede_forzar_el_turno_cuando_se_agota_la_espera(entorno):
+    """El worker fuerza el procesamiento tras agotar su presupuesto de espera:
+    seguir sin el predecesor es mejor que dejar el mensaje sin responder."""
     pipeline, messaging, _ = entorno
     registros = registrar_rafaga(pipeline)
-
-    # El primero queda zombi: reclamado y nunca terminado.
-    Message.objects.filter(id=registros[0].message_id).update(
-        status=MessageStatus.PROCESSING
-    )
 
     bloqueado = async_to_sync(pipeline.process_message)(registros[1].message_id)
     assert bloqueado.status == "esperando_turno"
 
-    # Se envejece el zombi más allá del margen de espera.
-    from datetime import timedelta
-
-    from django.utils import timezone
-
-    Message.objects.filter(id=registros[0].message_id).update(
-        created_at=timezone.now() - timedelta(minutes=30)
+    forzado = async_to_sync(pipeline.process_message)(
+        registros[1].message_id, forzar_turno=True
     )
-
-    resultado = async_to_sync(pipeline.process_message)(registros[1].message_id)
-    assert resultado.status == "processed", "la conversación quedó bloqueada por un zombi"
+    assert forzado.status == "processed"
     assert len(messaging.sent) == 1
 
 
@@ -156,7 +144,10 @@ def test_otra_conversacion_no_espera_por_esta(entorno):
     de la cola de otro."""
     pipeline, messaging, _ = entorno
     registros = registrar_rafaga(pipeline)
-    assert registros  # la ráfaga del primer contacto queda sin procesar
+    # La ráfaga del primer contacto queda deliberadamente sin procesar.
+    assert Message.objects.filter(direction="in", status=MessageStatus.RECEIVED).count() == len(
+        registros
+    )
 
     otro = async_to_sync(pipeline.register)(
         IncomingMessage(

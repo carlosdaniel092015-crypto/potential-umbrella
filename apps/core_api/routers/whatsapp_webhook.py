@@ -77,4 +77,13 @@ async def receive_whatsapp(
         return {"status": "queued"}
 
     result = await pipeline.handle_inbound(incoming)
+
+    if result.status == "esperando_turno":
+        # En modo inline no hay worker que lo reencole: si respondiéramos 200,
+        # YCloud daría el mensaje por entregado y se perdería. Un 503 hace que
+        # el proveedor lo reintente.
+        raise HTTPException(
+            status_code=503, detail="Otro mensaje de este contacto está en curso"
+        )
+
     return {"status": result.status, "agent": result.agent_name}

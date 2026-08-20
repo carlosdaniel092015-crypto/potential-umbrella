@@ -11,6 +11,7 @@ from typing import Any
 
 from asgiref.sync import sync_to_async
 from django.db import IntegrityError, transaction
+from django.db.models import Q
 from django.utils import timezone
 
 from apps.core_api.schemas.messages import IncomingMessage
@@ -124,22 +125,30 @@ class ConversationService:
         dos mensajes del mismo cliente y cada respuesta se genera sin ver la
         otra, así que llegan descoordinadas y en cualquier orden.
 
-        El margen evita que un mensaje abandonado (uno que quedó reclamado y no
-        terminó nunca) bloquee la conversación para siempre: pasado ese tiempo
-        deja de contar como pendiente. `created_at` es la referencia; un
-        mensaje FALLIDO ya terminó, aunque haya terminado mal, y no bloquea.
+        Bloquean tres estados, y el motivo de cada uno importa:
+
+        - `RECEIVED`: aún no empezó. Bloquea siempre. Si su tarea se perdió, lo
+          rescata `reencolar_pendientes`, no un tiempo de espera.
+        - `PROCESSING`: en curso. Bloquea hasta que el reclamo caduca — medido
+          desde `processing_started_at`, porque un backlog viejo no significa
+          abandono.
+        - `FAILED`: falló y va a reintentarse, así que su respuesta todavía
+          puede salir. Si no bloqueara, su sucesor contestaría primero y el
+          cliente recibiría las respuestas al revés.
         """
         limite = timezone.now() - timedelta(minutes=margen_minutos)
-        return (
-            Message.objects.filter(
-                conversation_id=conversation_id,
-                direction=MessageDirection.INBOUND,
-                id__lt=message_id,
-                created_at__gte=limite,
-            )
-            .filter(status__in=[MessageStatus.RECEIVED, MessageStatus.PROCESSING])
-            .exists()
+        anteriores = Message.objects.filter(
+            conversation_id=conversation_id,
+            direction=MessageDirection.INBOUND,
+            id__lt=message_id,
         )
+        sin_empezar = anteriores.filter(
+            status__in=[MessageStatus.RECEIVED, MessageStatus.FAILED]
+        )
+        en_curso = anteriores.filter(status=MessageStatus.PROCESSING).filter(
+            Q(processing_started_at__gte=limite) | Q(processing_started_at__isnull=True)
+        )
+        return sin_empezar.exists() or en_curso.exists()
 
     async def tiene_anteriores_pendientes(
         self, conversation_id: int, message_id: int, margen_minutos: int = 15
@@ -151,11 +160,15 @@ class ConversationService:
     @staticmethod
     def _claim_sync(message_id: int) -> bool:
         """Reclama el mensaje para procesarlo. UPDATE condicional atómico: solo
-        una ejecución concurrente puede pasar de RECEIVED/FAILED a PROCESSING."""
+        una ejecución concurrente puede pasar de RECEIVED/FAILED a PROCESSING.
+
+        Sella el momento del reclamo: es la referencia desde la que se mide si
+        un mensaje quedó abandonado.
+        """
         updated = Message.objects.filter(
             id=message_id,
             status__in=[MessageStatus.RECEIVED, MessageStatus.FAILED],
-        ).update(status=MessageStatus.PROCESSING)
+        ).update(status=MessageStatus.PROCESSING, processing_started_at=timezone.now())
         return updated == 1
 
     async def claim_for_processing(self, message_id: int) -> bool:
@@ -212,10 +225,12 @@ class ConversationService:
                 raise
             if existing.status == MessageStatus.SENT:
                 return existing.id, True
-            existing.content = content
+            # Se conserva el texto que ya se había generado. Regenerarlo con el
+            # modelo daría una respuesta distinta, y si el envío anterior falló
+            # de forma ambigua (un tiempo de espera agotado que el proveedor sí
+            # entregó) el cliente vería dos versiones diferentes de lo mismo.
             existing.status = MessageStatus.PENDING
-            existing.agent_id = agent_id
-            existing.save(update_fields=["content", "status", "agent"])
+            existing.save(update_fields=["status"])
             return existing.id, False
 
     async def claim_outbound(
@@ -226,11 +241,35 @@ class ConversationService:
         )
 
     @staticmethod
+    def _texto_pendiente_sync(inbound_id: int) -> str | None:
+        """Texto ya generado para este entrante y aún sin enviar, si existe."""
+        row = (
+            Message.objects.filter(
+                reply_to_id=inbound_id, direction=MessageDirection.OUTBOUND
+            )
+            .exclude(status=MessageStatus.SENT)
+            .first()
+        )
+        return row.content if row and row.content else None
+
+    async def texto_pendiente(self, inbound_id: int) -> str | None:
+        return await sync_to_async(self._texto_pendiente_sync)(inbound_id)
+
+    @staticmethod
     def _recent_history_sync(conversation_id: int, limit: int, exclude_message_id: int) -> list:
+        # Solo entra en el historial lo que el cliente vio de verdad: una
+        # respuesta que quedó sin enviar no es parte de la conversación, y
+        # metida en el prompt hace que el bot dé por leído lo que nunca llegó.
+        # Se ordena por id y no por created_at: dos filas del mismo lote de
+        # webhooks pueden compartir marca de tiempo y quedar en orden indefinido.
         rows = (
             Message.objects.filter(conversation_id=conversation_id)
+            .filter(
+                Q(direction=MessageDirection.INBOUND)
+                | Q(direction=MessageDirection.OUTBOUND, status=MessageStatus.SENT)
+            )
             .exclude(id=exclude_message_id)
-            .order_by("-created_at")[:limit]
+            .order_by("-id")[:limit]
         )
         history = [
             {

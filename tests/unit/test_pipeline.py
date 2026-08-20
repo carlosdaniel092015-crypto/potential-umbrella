@@ -28,7 +28,9 @@ class FakeConversationService:
         ya_respondido: bool = False,
         history: list[dict] | None = None,
         anteriores_pendientes: bool = False,
+        pendiente: str | None = None,
     ) -> None:
+        self.pendiente = pendiente
         self.already_processed = already_processed
         self.created = created
         self.claim_ok = claim_ok
@@ -42,6 +44,9 @@ class FakeConversationService:
         self, conversation_id: int, message_id: int, margen_minutos: int = 15
     ) -> bool:
         return self.anteriores_pendientes
+
+    async def texto_pendiente(self, inbound_id: int) -> str | None:
+        return self.pendiente
 
     async def register_inbound(self, incoming: IncomingMessage) -> InboundRegistration:
         return InboundRegistration(

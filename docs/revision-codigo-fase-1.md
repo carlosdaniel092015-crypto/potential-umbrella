@@ -65,6 +65,35 @@ misma ráfaga sí recibe la suya. Cinco pruebas nuevas cubren la ráfaga en orde
 producción, la atadura respuesta→mensaje, el reintento del mismo mensaje y el
 reintento tras fallo de envío.
 
+## Tercera ronda: la revisión del propio arreglo
+
+El turno por conversación (D-28) pasó por una revisión adversarial que reprodujo
+**12 defectos ejecutando código**, dos de ellos críticos. El arreglo de un
+problema había introducido otros peores. Vale la pena registrarlo porque el
+patrón se repite: lo que parece una guarda razonable falla en el camino que los
+tests no recorren.
+
+| Defecto | Por qué era grave | Corrección |
+|---|---|---|
+| **El presupuesto de espera (60 s) era 15 veces menor que el margen de abandono (15 min)** | Al agotarse los reintentos la tarea moría y el mensaje quedaba sin responder, sin nadie que lo reencolara. Peor: un solo mensaje zombi provocaba un apagón de 15 minutos en el que **todo mensaje nuevo de ese cliente se descartaba en silencio**, y cada descarte alargaba el apagón. Más grave que el defecto que D-28 arreglaba. | Al agotar la espera se procesa sin el predecesor, que es la misma decisión que ya toma el margen. Nunca se muere sin responder. |
+| **`self.retry(max_retries=30)` corrompía la política de reintentos de todo el proceso** | `Task.retry` fija `override_max_retries` en la instancia de la tarea, que es un singleton del worker, y con `autoretry_for` ese valor queda pegado. Reproducido: tras una sola espera de turno, un mensaje genuinamente roto reintentaba 30 veces en vez de 3, ocupando la cola de tiempo real ~25 minutos. La afirmación del commit anterior («sin gastar los reintentos de los fallos reales») era falsa en ambos sentidos: compartía el contador y rompía el límite. | Se publica una tarea nueva con `apply_async`, que trae su propio contador. La tarea ya no está enlazada (`bind`), así que `self.retry` no está al alcance; un test estructural lo vigila. |
+| **Un predecesor en `FAILED` no bloqueaba** pero sí era reprocesable | Inversión de orden reproducida: el segundo mensaje respondía primero y el reintento del primero llegaba después. Justo el fallo que D-28 decía cerrar. | `FAILED` bloquea: su respuesta todavía puede salir. |
+| **El margen se medía sobre `created_at`** | Al drenar un backlog tras una caída del worker, todos los mensajes son viejos, así que el turno se desactivaba por completo — justo cuando el orden más importa. | Nueva marca `processing_started_at`: el margen mide el reclamo, no la antigüedad. `RECEIVED` bloquea siempre. |
+| **El historial incluía respuestas que nunca salieron** (defecto preexistente) | Una respuesta en `PENDING` o `SEND_FAILED` entraba al prompt como turno del asistente: el bot daba por leído algo que el cliente no recibió. | Solo entran los salientes `SENT`. Se ordena por id, no por `created_at`, que empata entre filas del mismo lote. |
+| **El reintento regeneraba la respuesta con el modelo** | Si el envío falló de forma ambigua (un tiempo de espera que el proveedor sí entregó), el cliente veía dos versiones distintas del mismo mensaje y el texto realmente enviado desaparecía del registro. | Se reenvía el texto ya persistido. |
+| **En modo inline, `esperando_turno` devolvía HTTP 200** | El proveedor daba el mensaje por entregado y se perdía para siempre. | Devuelve 503 para que el proveedor reintente. |
+| **Mensajes con la tarea perdida no los rescataba nadie** | Un `RECEIVED` cuya tarea nunca se ejecutó bloqueaba su conversación indefinidamente. | Comando `reencolar_pendientes`, para programar cada pocos minutos. |
+
+También quedaron corregidos una aserción vacua y un test que no distinguía «zombi»
+de «aún no procesado», y la tarea del worker pasó de cobertura cero a seis
+pruebas: los dos defectos críticos vivían enteros en esas ocho líneas.
+
+**Sigue sin resolver**, y consta como pendiente: ordenar por `id` es ordenar por
+INSERT, y en Postgres INSERT no es COMMIT, así que dos webhooks concurrentes del
+mismo contacto pueden hacer invisible al predecesor. No se reproduce en la suite
+porque los tests corren en SQLite, que serializa las escrituras. Requiere derivar
+el turno de un valor asignado bajo bloqueo de la conversación.
+
 ## Encontrado ejecutando, no revisando
 
 La ejecución en vivo destapó un fallo que ningún revisor había previsto: cuando

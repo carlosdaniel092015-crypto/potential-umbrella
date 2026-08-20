@@ -63,19 +63,28 @@ class MessagePipeline:
         )
         return await self._process(work)
 
-    async def process_message(self, message_id: int) -> PipelineResult:
-        """Entrada del worker: el mensaje ya está persistido."""
+    async def process_message(
+        self, message_id: int, forzar_turno: bool = False
+    ) -> PipelineResult:
+        """Entrada del worker: el mensaje ya está persistido.
+
+        `forzar_turno` salta la espera. El worker lo usa cuando agotó su
+        presupuesto de espera: seguir sin el predecesor es peor que dejar el
+        mensaje sin responder para siempre.
+        """
         work = await self._conversations.load_work(message_id)
         if work is None:
             logger.error("Mensaje %s no encontrado: nada que procesar", message_id)
             return PipelineResult(status="not_found")
-        return await self._process(work)
+        return await self._process(work, forzar_turno=forzar_turno)
 
-    async def _process(self, work: InboundWork) -> PipelineResult:
+    async def _process(
+        self, work: InboundWork, forzar_turno: bool = False
+    ) -> PipelineResult:
         # Turno por conversación: si un mensaje anterior del mismo cliente
         # todavía no terminó, este espera. Sin esto, dos respuestas de la misma
         # ráfaga se generan sin verse y llegan descoordinadas.
-        if await self._conversations.tiene_anteriores_pendientes(
+        if not forzar_turno and await self._conversations.tiene_anteriores_pendientes(
             work.conversation_id,
             work.message_id,
             margen_minutos=self._settings.orden_margen_minutos,
@@ -94,7 +103,17 @@ class MessagePipeline:
             return PipelineResult(status="duplicate", conversation_id=work.conversation_id)
 
         try:
-            reply, agent_config = await self._compose_reply(work)
+            # Si un intento anterior ya generó la respuesta pero no logró
+            # enviarla, se reutiliza ese texto en lugar de pedir otro al modelo.
+            pendiente = await self._conversations.texto_pendiente(work.message_id)
+            if pendiente is not None:
+                logger.info(
+                    "Reintento del mensaje %s: se reenvía el texto ya generado",
+                    work.message_id,
+                )
+                reply, agent_config = pendiente, await self._agente_del_turno(work)
+            else:
+                reply, agent_config = await self._compose_reply(work)
         except Exception:
             await self._conversations.mark_inbound_failed(work.message_id)
             raise
@@ -148,6 +167,18 @@ class MessagePipeline:
             reply=reply,
             conversation_id=work.conversation_id,
         )
+
+    async def _agente_del_turno(self, work: InboundWork):
+        """Agente que corresponde a este mensaje, sin volver a llamar al modelo.
+        Se usa al reenviar un texto ya generado."""
+        if work.message_type != "text":
+            return None
+        route = await self._router.route(
+            contact_id=work.contact_phone, channel="whatsapp", content=work.content
+        )
+        if not route.agent_name:
+            return None
+        return await self._agents.get_active_by_name(route.agent_name)
 
     async def _compose_reply(self, work: InboundWork):
         if work.message_type != "text":
