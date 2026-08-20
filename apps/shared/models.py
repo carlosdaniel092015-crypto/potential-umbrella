@@ -86,6 +86,12 @@ class Conversation(models.Model):
     # Ventana de 24h de WhatsApp Business: fuera de ella solo se permiten plantillas.
     # Se registra desde Fase 1; el enforcement de plantillas llega en fases posteriores.
     last_inbound_at = models.DateTimeField(null=True, blank=True)
+    # Siguiente posición a asignar dentro de la conversación. Se reparte bajo
+    # bloqueo de esta fila, así que refleja el orden en que los mensajes se
+    # confirmaron, no el orden en que se insertaron: el id autoincremental se
+    # asigna al INSERT y en Postgres el INSERT no es el COMMIT, de modo que dos
+    # webhooks concurrentes del mismo contacto podían quedar al revés.
+    next_seq = models.PositiveIntegerField(default=1)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -136,6 +142,10 @@ class Message(models.Model):
     # drenar un backlog viejo (worker caído) desactivaba el turno para toda la
     # ráfaga, que es justo cuando el orden más importa.
     processing_started_at = models.DateTimeField(null=True, blank=True)
+    # Posición dentro de la conversación, repartida bajo bloqueo de la fila de
+    # Conversation. Es lo que ordena el turno; el id no sirve porque se asigna
+    # al INSERT y el orden de INSERT no es el orden de COMMIT.
+    seq = models.PositiveIntegerField(null=True, blank=True)
     metadata = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 

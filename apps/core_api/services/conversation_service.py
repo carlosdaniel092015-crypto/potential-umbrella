@@ -10,7 +10,7 @@ from datetime import timedelta
 from typing import Any
 
 from asgiref.sync import sync_to_async
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, connection, transaction
 from django.db.models import Q
 from django.utils import timezone
 
@@ -69,6 +69,22 @@ class ConversationService:
             return found
 
     @staticmethod
+    def _bloquear_conversacion(conversation_id: int) -> Conversation:
+        """Toma la fila de la conversación en exclusiva.
+
+        Serializa el registro de mensajes de un mismo contacto: el segundo
+        webhook espera a que el primero confirme, así que la posición que se
+        reparte a continuación respeta el orden real. En SQLite el bloqueo de
+        fila no existe, pero el motor ya serializa las escrituras, de modo que
+        el reparto es igual de seguro; en Postgres hace falta el bloqueo
+        explícito.
+        """
+        query = Conversation.objects.filter(id=conversation_id)
+        if connection.features.has_select_for_update:
+            query = query.select_for_update()
+        return query.get()
+
+    @staticmethod
     def _register_inbound_sync(incoming: IncomingMessage) -> InboundRegistration:
         with transaction.atomic():
             contact, _ = Contact.objects.get_or_create(
@@ -82,6 +98,9 @@ class ConversationService:
             conversation = ConversationService._get_or_create_conversation(
                 contact, incoming.channel
             )
+            # Desde aquí hasta el commit, ningún otro registro de esta
+            # conversación avanza.
+            conversation = ConversationService._bloquear_conversacion(conversation.id)
 
             # Idempotencia: external_id unique. Un webhook duplicado no crea
             # segunda fila. Solo FAILED es reprocesable; PROCESSING (otra
@@ -95,6 +114,7 @@ class ConversationService:
                     "content": incoming.content,
                     "status": MessageStatus.RECEIVED,
                     "metadata": incoming.metadata,
+                    "seq": conversation.next_seq,
                 },
             )
             already_processed = not created and message.status in {
@@ -103,7 +123,11 @@ class ConversationService:
             }
 
             conversation.last_inbound_at = timezone.now()
-            conversation.save(update_fields=["last_inbound_at", "updated_at"])
+            campos = ["last_inbound_at", "updated_at"]
+            if created:
+                conversation.next_seq += 1
+                campos.append("next_seq")
+            conversation.save(update_fields=campos)
 
         return InboundRegistration(
             conversation_id=conversation.id,
@@ -137,11 +161,17 @@ class ConversationService:
           cliente recibiría las respuestas al revés.
         """
         limite = timezone.now() - timedelta(minutes=margen_minutos)
+        propio = Message.objects.filter(id=message_id).values_list("seq", flat=True).first()
         anteriores = Message.objects.filter(
             conversation_id=conversation_id,
             direction=MessageDirection.INBOUND,
-            id__lt=message_id,
         )
+        if propio is None:
+            # Mensaje sin posición asignada (registrado antes de que existiera
+            # el contador): se cae al id, que es lo que había.
+            anteriores = anteriores.filter(id__lt=message_id)
+        else:
+            anteriores = anteriores.filter(seq__lt=propio)
         sin_empezar = anteriores.filter(
             status__in=[MessageStatus.RECEIVED, MessageStatus.FAILED]
         )

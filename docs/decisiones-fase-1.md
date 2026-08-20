@@ -33,6 +33,7 @@ Cada decisión resuelve una ambigüedad o contradicción detectada en la
 | D-31 | **El historial solo contiene lo que el cliente vio** | `recent_history` filtra los salientes por `SENT` y ordena por id. Una respuesta sin enviar metida en el prompt hacía que el bot diera por leído lo que nunca llegó. | Implementado |
 | D-32 | **El reintento reenvía, no regenera** | Si ya existe un texto generado y sin enviar para ese mensaje, se reenvía tal cual. Regenerarlo con el modelo produciría otra redacción, y ante un fallo de envío ambiguo el cliente vería dos versiones distintas. | Implementado |
 | D-33 | **Rescate de mensajes con la tarea perdida** | `manage.py reencolar_pendientes` devuelve a la cola los entrantes en `received` viejos y los `processing` abandonados. Debe programarse cada pocos minutos: sin él, un mensaje cuya tarea se perdió bloquea su conversación. | Implementado (requiere programarse) |
+| D-34 | **El turno ordena por posición, no por id** | `Conversation.next_seq` reparte `Message.seq` bajo bloqueo de la fila de la conversación (`select_for_update` donde el motor lo soporta). El id no sirve para ordenar: se asigna al INSERT y en Postgres el INSERT no es el COMMIT, así que dos webhooks concurrentes del mismo contacto podían obtener ids en un orden y confirmar en el otro, con lo que el sucesor no veía a su predecesor. Los mensajes sin posición (anteriores al contador) caen al id. **La carrera no es reproducible en la suite**: corre en SQLite, que serializa las escrituras; el test que la demostraría está escrito y se activa solo con un motor que tenga bloqueo de fila. | Implementado (sin verificar en Postgres) |
 
 ## Matriz de versiones congelada (uv.lock)
 
@@ -47,12 +48,12 @@ celery 5.6 · redis-py 6.4 · psycopg 3.3 · pydantic 2.13 · gunicorn 26.1
 - Suite de conversaciones de referencia (QA §3.2). El dataset etiquetado y el medidor de enrutamiento ya existen: ver [medicion-enrutamiento.md](medicion-enrutamiento.md).
 - Conciliación automática de mensajes que quedan en `PROCESSING` por fallo de persistencia post-envío (hoy: alerta por log crítico).
 - Breaker con estado compartido en Redis cuando haya varias réplicas (hoy: por proceso, cacheado por worker).
-- **El turno se deriva del `id` autoincremental, que es orden de INSERT y no de COMMIT.** En Postgres, dos webhooks concurrentes del mismo contacto pueden hacer que el predecesor sea invisible para el sucesor, e invertir el orden. No se reproduce en la suite porque los tests corren en SQLite, que serializa las escrituras. Requiere derivar el turno de un valor asignado bajo bloqueo de la conversación (`select_for_update` + contador propio).
+- **Verificar D-34 contra Postgres.** El orden ya se deriva de una posición repartida bajo bloqueo de la conversación, pero la carrera que motivó el cambio no se puede reproducir en SQLite. El test de registro concurrente está escrito y se salta solo; correr la suite contra Postgres lo activa.
 - Programar `reencolar_pendientes` (Celery beat o cron) en el despliegue: sin él, un mensaje cuya tarea se perdió bloquea su conversación hasta que el worker agote el presupuesto de espera.
 
 ## Verificación (bucle ejecutado, no inferido)
 
-- **120 tests** (69 unitarios + 38 de integración + 13 de evaluación) en verde, 100 % offline.
+- **127 tests** (69 unitarios + 45 de integración + 13 de evaluación) en verde, 100 % offline. Uno se salta: el de registro concurrente, que necesita un motor con bloqueo de fila.
 - **93 %** de cobertura de ramas.
 - **mypy** limpio en 58 archivos con el plugin de django-stubs.
 - **Ejecución real** con base limpia: salud OK, texto → `processed/ventas`, duplicado → `duplicate`, audio → mensaje de capacidad, callback de estado → `ignored`, JSON roto → 400, cuerpo de 300 KB → 413, webhook de voz → 501. Estado final en base sin mensajes zombi.
