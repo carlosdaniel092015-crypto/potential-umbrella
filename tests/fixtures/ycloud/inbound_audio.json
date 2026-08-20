@@ -1,0 +1,16 @@
+{
+  "id": "evt_inbound_audio_001",
+  "type": "whatsapp.inbound_message.received",
+  "apiVersion": "v2",
+  "createTime": "2026-08-20T10:05:00.000Z",
+  "whatsappInboundMessage": {
+    "id": "wamid.TEST-AUDIO-001",
+    "wabaId": "1234567890",
+    "from": "+5215550001111",
+    "to": "+5215550009999",
+    "sendTime": "2026-08-20T10:05:00.000Z",
+    "type": "audio",
+    "audio": { "id": "media-123", "mimeType": "audio/ogg" },
+    "customerProfile": { "name": "Juan Vendedor" }
+  }
+}

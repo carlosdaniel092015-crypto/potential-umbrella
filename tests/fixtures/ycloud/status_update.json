@@ -1,0 +1,11 @@
+{
+  "id": "evt_status_001",
+  "type": "whatsapp.message.updated",
+  "apiVersion": "v2",
+  "createTime": "2026-08-20T10:01:00.000Z",
+  "whatsappMessage": {
+    "id": "wamid.TEST-OUT-001",
+    "status": "delivered",
+    "to": "+5215550001111"
+  }
+}

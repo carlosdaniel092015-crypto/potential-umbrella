@@ -1,0 +1,62 @@
+# CI corregido respecto al ejemplo del documento (§4.3), que tenía el job de
+# seguridad sin checkout y CodeQL sin init (hallazgo de la revisión).
+name: ci
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+
+# Mínimo privilegio: el job de tests ejecuta código de PRs (incluidos forks).
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+      - run: uv sync --frozen
+      - run: uv run ruff check .
+      - name: mypy (no bloqueante al inicio, §2.5)
+        run: uv run mypy apps/
+        continue-on-error: true
+      # Gate 80% (DoD §3.5); hoy la suite está en ~91%.
+      - run: uv run pytest --cov --cov-branch --cov-fail-under=80
+
+  security-scan:
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+      - name: pip-audit sobre el lockfile
+        run: |
+          uv export --format requirements-txt --no-dev --no-emit-project > requirements-audit.txt
+          uvx pip-audit -r requirements-audit.txt --disable-pip
+      - name: gitleaks (secretos commiteados)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  codeql:
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: python
+      - uses: github/codeql-action/analyze@v3
+
+  # Despliegues (staging automático, producción con aprobación manual) se
+  # activan cuando exista el entorno destino — ver roadmap Fase 1/6.
