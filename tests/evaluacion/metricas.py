@@ -87,7 +87,9 @@ class Evaluacion:
         confusiones = self.confusiones_frecuentes()
         if confusiones:
             lineas.append("confusiones más frecuentes:")
-            lineas.extend(f"  {real} → {predicha}: {n}" for real, predicha, n in confusiones)
+            # ASCII en el separador: la consola de Windows usa cp1252 por
+            # defecto y una flecha unicode rompe la impresión del informe.
+            lineas.extend(f"  {real} -> {predicha}: {n}" for real, predicha, n in confusiones)
         return "\n".join(lineas)
 
 

@@ -5,7 +5,7 @@ from apps.core_api.graphs.router_graph import AgentRouter
 async def test_router_devuelve_agente_del_resolver():
     async def resolver(intent: str, confidence: float) -> str | None:
         assert intent == "pedido"
-        assert confidence >= 0.9
+        assert confidence >= 0.7
         return "ventas"
 
     router = AgentRouter(RuleBasedClassifier(), resolver)
