@@ -47,4 +47,8 @@ celery 5.6 · redis-py 6.4 · psycopg 3.3 · pydantic 2.13 · gunicorn 26.1
 - **93 %** de cobertura de ramas.
 - **mypy** limpio en 58 archivos con el plugin de django-stubs.
 - **Ejecución real** con base limpia: salud OK, texto → `processed/ventas`, duplicado → `duplicate`, audio → mensaje de capacidad, callback de estado → `ignored`, JSON roto → 400, cuerpo de 300 KB → 413, webhook de voz → 501. Estado final en base sin mensajes zombi.
-- **ruff** no pudo ejecutarse en la máquina local (política ASR de Windows bloquea el ejecutable por prevalencia); queda cubierto en CI.
+
+### Lo que NO se pudo verificar en esta máquina
+
+- **ruff**: la política de reducción de superficie de ataque de Windows bloquea su ejecutable por prevalencia. Queda cubierto en CI.
+- **docker compose**: `docker compose config` valida la sintaxis y los seis servicios, pero el daemon de Docker Desktop no llegó a arrancar, así que **el build de las imágenes y el arranque de la pila (Postgres + Redis + migrate + worker) están sin probar**. Antes de darlos por buenos hay que correr `docker compose up --build` en una máquina con Docker operativo. Los caminos de código sí están verificados con SQLite y ejecución real de la API.

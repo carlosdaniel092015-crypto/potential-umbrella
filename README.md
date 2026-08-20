@@ -47,6 +47,12 @@ docker compose up --build
 Levanta Postgres (pgvector), Redis (AOF + password), migraciones + seed,
 core_api (:8000, modo celery), panel (:8001) y worker.
 
+> **Sin verificar todavía.** La sintaxis del compose y los seis servicios están
+> validados con `docker compose config`, pero el daemon de Docker no arrancó en
+> la máquina de desarrollo, así que el build de imágenes y el arranque de la
+> pila completa siguen sin probarse. Los flujos de código sí están verificados
+> con SQLite y la API corriendo de verdad.
+
 ## Tests
 
 ```bash
