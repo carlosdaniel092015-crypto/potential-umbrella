@@ -10,7 +10,7 @@ Cada decisión resuelve una ambigüedad o contradicción detectada en la
 | D-02 | **Firma HMAC sobre el body crudo** | `verify_signature(raw_bytes, header, secret)` con `hmac.compare_digest`; límite de tamaño y verificación ANTES de parsear JSON. **Pendiente**: confirmar contra docs.ycloud.com el header exacto y si la firma incluye timestamp anti-replay; las fixtures de `tests/fixtures/ycloud/` documentan el contrato asumido. | Implementado (contrato por confirmar) |
 | D-03 | **Idempotencia de webhook** | `Message.external_id` unique + `get_or_create`; duplicado con estado `processed` → respuesta `duplicate` sin reprocesar. Un fallo a mitad de pipeline deja el mensaje en `received`/`failed` y el reintento lo continúa. Segunda barrera (SETNX Redis) cuando haya réplicas. | Implementado |
 | D-04 | **Webhook con modo dual** | `PROCESSING_MODE=inline` (dev/tests: pipeline await directo) / `celery` (producción: ACK inmediato + task en cola `realtime`, coherente con §1.1 event-driven). El compose usa `celery`. | Implementado |
-| D-05 | **Estado conversacional** | Historial canónico en Postgres (tabla Message); Redis solo caché caliente con TTL 24h (`redis_memory_service`, aún no en el camino de Fase 1). Checkpointer LangGraph: se decide en Fase 2. Concurrencia por contacto (ráfagas): **limitación conocida de Fase 1**, serialización por contacto planificada para Fase 2. | Parcial (documentado) |
+| D-05 | **Estado conversacional** | Historial canónico en Postgres (tabla Message); Redis solo caché caliente con TTL 24h (`redis_memory_service`, aún no en el camino de Fase 1). Checkpointer LangGraph: se decide en Fase 2. Concurrencia por contacto (ráfagas): **resuelta en D-28** con el turno por conversación. | Resuelto (ver D-28) |
 | D-06 | **Determinador en Fase 1** | Grafo LangGraph completo (classify → route) con Strategy: `RuleBasedClassifier` (keywords) + resolver trivial al único agente activo. Fase 2 sustituye clasificador/resolver (reglas en Configuration, umbral de confianza, fallback a humano) sin tocar la interfaz. | Implementado |
 | D-07 | **Tipos no soportados: nunca silencio** | Audio/imagen/documento reciben mensaje de capacidad no disponible (configurable). Callbacks de estado de YCloud → 200 `ignored` sin pipeline. | Implementado |
 | D-08 | **Toolchain** | `uv` (poetry no; el doc permitía ambos), Python 3.12 en contenedores, imports absolutos `apps.*`, Dockerfile único multi-target con usuario no-root, 1 worker uvicorn parametrizable. | Implementado |
@@ -27,6 +27,7 @@ Cada decisión resuelve una ambigüedad o contradicción detectada en la
 | D-19 | **Semántica de errores del webhook** | Fallo antes o durante el envío → 500 para que YCloud reintente. Fallo **después** de un envío exitoso → se registra como crítico y se responde 200: propagar el error haría reenviar un mensaje ya entregado. El mensaje queda en `PROCESSING` para conciliación manual. | Implementado |
 | D-20 | **Límite de cuerpo antes de bufferizar** | Rechazo por `Content-Length` y corte durante el streaming: `request.body()` no tiene tope y permitía agotar memoria sin autenticarse. | Implementado |
 | D-27 | **Una respuesta por mensaje, atada a él** | `Message.reply_to` apunta al entrante que se contesta, con restricción única sobre las respuestas. Crear la fila **es** el derecho a responder: dos ejecuciones del mismo mensaje no escriben dos veces, y otro mensaje de la misma ráfaga sí recibe la suya. Sustituye la guarda «¿hay respuesta posterior a este id?», que descartaba en silencio los mensajes 2..N de cada ráfaga en el camino de producción. | Implementado |
+| D-28 | **Turno por conversación** | Un mensaje no se procesa mientras quede otro anterior del mismo cliente sin terminar: devuelve `esperando_turno` y el worker lo reintenta en 2 s (con reintentos propios, sin gastar los de los fallos reales). Así cada respuesta ve las anteriores y salen en orden. El bloqueo caduca a los 15 minutos, para que un mensaje abandonado no atasque la conversación para siempre; el turno es por conversación, así que otro cliente nunca espera detrás. Cierra el pendiente que la Fase 1 dejó declarado en D-05. | Implementado |
 
 ## Matriz de versiones congelada (uv.lock)
 
@@ -37,14 +38,14 @@ celery 5.6 · redis-py 6.4 · psycopg 3.3 · pydantic 2.13 · gunicorn 26.1
 
 - Confirmar contrato real de YCloud (firma + payload + endpoint de envío) con la cuenta real.
 - MFA del panel (paquete concreto), rate limiting en el borde, roles Postgres separados, pseudonimización completa de PII (hoy: máscara en logs propios y cola sin PII).
-- Serialización/debounce por contacto para ráfagas de mensajes.
+- Agrupar una ráfaga en una sola respuesta (debounce). El turno por conversación (D-28) ya evita respuestas cruzadas y descoordinadas; agrupar además varios mensajes en una única contestación gasta presupuesto de latencia y no se decide sin medir el p95 primero.
 - Dataset etiquetado de intenciones + suite de golden conversations (QA §3.2) al llegar el Determinador LLM.
 - Conciliación automática de mensajes que quedan en `PROCESSING` por fallo de persistencia post-envío (hoy: alerta por log crítico).
 - Breaker con estado compartido en Redis cuando haya varias réplicas (hoy: por proceso, cacheado por worker).
 
 ## Verificación (bucle ejecutado, no inferido)
 
-- **90 tests** (57 unitarios + 33 de integración) en verde, 100 % offline.
+- **109 tests** (63 unitarios + 33 de integración + 13 de evaluación) en verde, 100 % offline.
 - **93 %** de cobertura de ramas.
 - **mypy** limpio en 58 archivos con el plugin de django-stubs.
 - **Ejecución real** con base limpia: salud OK, texto → `processed/ventas`, duplicado → `duplicate`, audio → mensaje de capacidad, callback de estado → `ignored`, JSON roto → 400, cuerpo de 300 KB → 413, webhook de voz → 501. Estado final en base sin mensajes zombi.

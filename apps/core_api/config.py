@@ -34,6 +34,12 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379/0"
     conversation_history_limit: int = 10
 
+    # Turno por conversación: cuánto se espera a un mensaje anterior antes de
+    # considerarlo abandonado y seguir sin él.
+    orden_margen_minutos: int = 15
+    # Segundos antes de reintentar un mensaje que está esperando su turno.
+    orden_reintento_segundos: int = 2
+
     # Endpoints /internal/*: fuera de dev exigen este token. No basta confiar en
     # que el ingress no los publique — core_api sí es público (recibe el webhook).
     internal_api_token: str = ""

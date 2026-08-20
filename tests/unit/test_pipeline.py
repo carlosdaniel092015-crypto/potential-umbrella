@@ -27,14 +27,21 @@ class FakeConversationService:
         claim_ok: bool = True,
         ya_respondido: bool = False,
         history: list[dict] | None = None,
+        anteriores_pendientes: bool = False,
     ) -> None:
         self.already_processed = already_processed
         self.created = created
         self.claim_ok = claim_ok
         self.ya_respondido = ya_respondido
         self.history = history or []
+        self.anteriores_pendientes = anteriores_pendientes
         self.outbound: list[dict] = []
         self.marks: list[tuple] = []
+
+    async def tiene_anteriores_pendientes(
+        self, conversation_id: int, message_id: int, margen_minutos: int = 15
+    ) -> bool:
+        return self.anteriores_pendientes
 
     async def register_inbound(self, incoming: IncomingMessage) -> InboundRegistration:
         return InboundRegistration(
@@ -253,6 +260,19 @@ async def test_process_message_rehidrata_desde_la_persistencia():
 
     assert result.status == "processed"
     assert messaging.sent[0]["to"] == "+5215550001111"
+
+
+async def test_espera_su_turno_si_hay_anteriores_sin_terminar():
+    pipeline, conversations, messaging, llm = build_pipeline(
+        conversations=FakeConversationService(anteriores_pendientes=True)
+    )
+    result = await pipeline.handle_inbound(incoming())
+
+    assert result.status == "esperando_turno"
+    assert messaging.sent == []
+    assert llm.calls == [], "no se gasta una llamada al modelo mientras espera"
+    # No se reclamó: el mensaje sigue disponible para su turno.
+    assert not any(m[0] == "claim" for m in conversations.marks)
 
 
 async def test_process_message_con_id_inexistente():

@@ -72,6 +72,21 @@ class MessagePipeline:
         return await self._process(work)
 
     async def _process(self, work: InboundWork) -> PipelineResult:
+        # Turno por conversación: si un mensaje anterior del mismo cliente
+        # todavía no terminó, este espera. Sin esto, dos respuestas de la misma
+        # ráfaga se generan sin verse y llegan descoordinadas.
+        if await self._conversations.tiene_anteriores_pendientes(
+            work.conversation_id,
+            work.message_id,
+            margen_minutos=self._settings.orden_margen_minutos,
+        ):
+            logger.info(
+                "Mensaje %s espera su turno: hay anteriores sin terminar", work.message_id
+            )
+            return PipelineResult(
+                status="esperando_turno", conversation_id=work.conversation_id
+            )
+
         # Reclamo atómico: cierra la ventana en la que dos ejecuciones
         # concurrentes del mismo mensaje respondían dos veces al cliente.
         if not await self._conversations.claim_for_processing(work.message_id):

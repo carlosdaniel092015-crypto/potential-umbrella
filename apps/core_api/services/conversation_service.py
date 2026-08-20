@@ -6,6 +6,7 @@ sync_to_async: nunca ORM síncrono directo dentro de un handler async.
 
 import logging
 from dataclasses import dataclass
+from datetime import timedelta
 from typing import Any
 
 from asgiref.sync import sync_to_async
@@ -112,6 +113,40 @@ class ConversationService:
 
     async def register_inbound(self, incoming: IncomingMessage) -> InboundRegistration:
         return await sync_to_async(self._register_inbound_sync)(incoming)
+
+    @staticmethod
+    def _anteriores_pendientes_sync(
+        conversation_id: int, message_id: int, margen_minutos: int
+    ) -> bool:
+        """¿Queda algún mensaje anterior de esta conversación sin terminar?
+
+        Es el turno por conversación: sin él, dos workers procesan en paralelo
+        dos mensajes del mismo cliente y cada respuesta se genera sin ver la
+        otra, así que llegan descoordinadas y en cualquier orden.
+
+        El margen evita que un mensaje abandonado (uno que quedó reclamado y no
+        terminó nunca) bloquee la conversación para siempre: pasado ese tiempo
+        deja de contar como pendiente. `created_at` es la referencia; un
+        mensaje FALLIDO ya terminó, aunque haya terminado mal, y no bloquea.
+        """
+        limite = timezone.now() - timedelta(minutes=margen_minutos)
+        return (
+            Message.objects.filter(
+                conversation_id=conversation_id,
+                direction=MessageDirection.INBOUND,
+                id__lt=message_id,
+                created_at__gte=limite,
+            )
+            .filter(status__in=[MessageStatus.RECEIVED, MessageStatus.PROCESSING])
+            .exists()
+        )
+
+    async def tiene_anteriores_pendientes(
+        self, conversation_id: int, message_id: int, margen_minutos: int = 15
+    ) -> bool:
+        return await sync_to_async(self._anteriores_pendientes_sync)(
+            conversation_id, message_id, margen_minutos
+        )
 
     @staticmethod
     def _claim_sync(message_id: int) -> bool:
