@@ -79,6 +79,27 @@ fabricadas a mano, que es precisamente el hueco que dejó pasar el defecto.
 
 169 tests (antes 154), mypy limpio.
 
+## Segunda pasada: el aviso de traspaso que se perdía para siempre
+
+Confirmado y corregido en un commit posterior: si el envío del aviso de
+traspaso fallaba, la escalada ya se había registrado (`Conversation.status =
+ESCALATED` se pone antes de intentar el envío), así que el reintento del mismo
+mensaje entraba por el atajo de "el bot se calla" y se marcaba procesado sin
+volver a intentar enviarlo. El cliente se quedaba escalado sin que nadie se lo
+dijera nunca.
+
+Arreglo: antes de aplicar el silencio, se comprueba si ESTE mensaje concreto
+tiene un aviso propio todavía sin enviar (`texto_pendiente`); si lo tiene, se
+reintenta el envío en vez de callarse. Un mensaje POSTERIOR en una conversación
+ya escalada (sin aviso propio pendiente) sigue en silencio, sin cambios. No
+vuelve a escalar ni duplica el `TraceEvent`, porque el reintento reutiliza el
+texto ya generado (`_agente_del_turno`) en vez de pasar otra vez por
+`_compose_reply`/`escalar_a_persona`.
+
+Verificado con tres tests en `tests/integration/test_aviso_traspaso_reintento.py`:
+el reintento reenvía el aviso, no escala dos veces, y un mensaje sin aviso
+propio sigue callado.
+
 ## Lo que la revisión encontró y NO se arregló todavía
 
 Confirmados como reales pero no corregidos en esta pasada (por alcance y
@@ -87,7 +108,7 @@ tiempo, no por desacuerdo con el hallazgo):
 | Severidad | Hallazgo |
 |---|---|
 | Alta | El bot puede escribir después de que una persona tome la conversación si el traspaso ocurre mientras el modelo está generando la respuesta (segundos): el estado se lee una vez al principio y no se revalida antes de enviar. |
-| Alta | Si el aviso de traspaso ("te va a atender una persona") falla al enviarse, el reintento entra por la rama de "conversación escalada" y lo marca procesado sin reenviarlo: el cliente nunca se entera de que lo escalaron. |
+
 | Alta | `escalar_a_persona` no es idempotente: no hay resguardo explícito contra dos llamadas para el mismo traspaso. |
 | Alta | `seed_fase1` no es idempotente frente a ediciones del panel: puede resucitar reglas que alguien apagó a mano. |
 | Media | Apagar un agente no deja de enrutar hacia su intención: cae al comodín, que puede tener otro agente y otro umbral, sin dejar rastro de que cambió. |

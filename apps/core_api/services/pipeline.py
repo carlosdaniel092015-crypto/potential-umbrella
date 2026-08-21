@@ -95,20 +95,30 @@ class MessagePipeline:
                 status="esperando_turno", conversation_id=work.conversation_id
             )
 
-        # Si una persona tomó la conversación, el bot se calla. El mensaje se
-        # marca como atendido para que no bloquee el turno de los siguientes,
-        # pero queda guardado: callarse no es ignorar, y el vendedor tiene que
-        # verlo en el panel.
+        # Si una persona tomó la conversación, el bot se calla — salvo que ESTE
+        # mensaje sea el que causó el traspaso y su aviso ("te va a atender
+        # una persona") se quedó sin enviar. Sin esta excepción, un envío
+        # fallido del aviso se pierde para siempre: el reintento encontraba la
+        # conversación ya en ESCALATED (la escalada ya se había registrado
+        # antes del intento de envío) y se marcaba procesado sin volver a
+        # intentar, dejando al cliente sin ninguna explicación.
         if work.conversation_status == ConversationStatus.ESCALATED:
+            aviso_pendiente = await self._conversations.texto_pendiente(work.message_id)
+            if aviso_pendiente is None:
+                logger.info(
+                    "Conversación %s atendida por una persona: no se responde al mensaje %s",
+                    work.conversation_id,
+                    work.message_id,
+                )
+                await self._conversations.claim_for_processing(work.message_id)
+                await self._conversations.mark_inbound_processed(work.message_id)
+                return PipelineResult(
+                    status="atendida_por_persona", conversation_id=work.conversation_id
+                )
             logger.info(
-                "Conversación %s atendida por una persona: no se responde al mensaje %s",
-                work.conversation_id,
+                "Mensaje %s escaló la conversación pero su aviso quedó sin "
+                "enviar: se reintenta el envío, no se vuelve a escalar",
                 work.message_id,
-            )
-            await self._conversations.claim_for_processing(work.message_id)
-            await self._conversations.mark_inbound_processed(work.message_id)
-            return PipelineResult(
-                status="atendida_por_persona", conversation_id=work.conversation_id
             )
 
         # Reclamo atómico: cierra la ventana en la que dos ejecuciones
