@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from apps.shared.models import Agent, AgentPromptHistory
+from apps.shared.models import Agent, AgentPromptHistory, RoutingRule
 
 
 class AgentPromptHistoryInline(admin.TabularInline):
@@ -34,6 +34,14 @@ class AgentAdmin(admin.ModelAdmin):
             )
             return
         super().save_model(request, obj, form, change)
+
+
+@admin.register(RoutingRule)
+class RoutingRuleAdmin(admin.ModelAdmin):
+    list_display = ("intent", "agent", "min_confidence", "is_active", "updated_at")
+    list_filter = ("is_active", "agent")
+    list_editable = ("agent", "min_confidence", "is_active")
+    ordering = ("intent",)
 
 
 @admin.register(AgentPromptHistory)

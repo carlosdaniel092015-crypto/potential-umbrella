@@ -23,6 +23,7 @@ from apps.core_api.services.conversation_service import (
 )
 from apps.core_api.services.providers import LLMProvider, MessagingProvider
 from apps.core_api.services.ycloud_service import mask_phone
+from apps.shared.enums import ConversationStatus
 
 logger = logging.getLogger(__name__)
 
@@ -54,13 +55,11 @@ class MessagePipeline:
             return PipelineResult(
                 status="duplicate", conversation_id=registration.conversation_id
             )
-        work = InboundWork(
-            message_id=registration.message_id,
-            conversation_id=registration.conversation_id,
-            contact_phone=incoming.contact_phone,
-            message_type=incoming.type,
-            content=incoming.content,
-        )
+        # Se rehidrata desde la base para leer el estado de la conversación con
+        # el mismo criterio que el worker, en vez de armar el trabajo a mano.
+        work = await self._conversations.load_work(registration.message_id)
+        if work is None:  # pragma: no cover - acabamos de registrarlo
+            return PipelineResult(status="not_found")
         return await self._process(work)
 
     async def process_message(
@@ -94,6 +93,22 @@ class MessagePipeline:
             )
             return PipelineResult(
                 status="esperando_turno", conversation_id=work.conversation_id
+            )
+
+        # Si una persona tomó la conversación, el bot se calla. El mensaje se
+        # marca como atendido para que no bloquee el turno de los siguientes,
+        # pero queda guardado: callarse no es ignorar, y el vendedor tiene que
+        # verlo en el panel.
+        if work.conversation_status == ConversationStatus.ESCALATED:
+            logger.info(
+                "Conversación %s atendida por una persona: no se responde al mensaje %s",
+                work.conversation_id,
+                work.message_id,
+            )
+            await self._conversations.claim_for_processing(work.message_id)
+            await self._conversations.mark_inbound_processed(work.message_id)
+            return PipelineResult(
+                status="atendida_por_persona", conversation_id=work.conversation_id
             )
 
         # Reclamo atómico: cierra la ventana en la que dos ejecuciones
@@ -190,6 +205,20 @@ class MessagePipeline:
             channel="whatsapp",
             content=work.content,
         )
+
+        # El enrutamiento puede decidir que esto no lo atiende la IA: sin regla
+        # para la intención, o con menos confianza de la exigida.
+        if route.a_persona:
+            await self._conversations.escalar_a_persona(
+                work.conversation_id, motivo=route.motivo
+            )
+            logger.info(
+                "Mensaje %s pasa a una persona: %s", work.message_id, route.motivo
+            )
+            # Se avisa al cliente: dejarlo sin respuesta mientras espera a
+            # alguien es la peor de las opciones.
+            return self._settings.handoff_reply, None
+
         agent_config = (
             await self._agents.get_active_by_name(route.agent_name) if route.agent_name else None
         )

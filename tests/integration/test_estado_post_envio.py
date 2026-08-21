@@ -12,6 +12,7 @@ from apps.core_api.services.agent_repository import AgentRepository
 from apps.core_api.services.conversation_service import ConversationService
 from apps.core_api.services.llm_service import FakeLLMProvider
 from apps.core_api.services.pipeline import MessagePipeline
+from apps.core_api.services.routing_service import Decision, Ruta
 from apps.core_api.services.ycloud_service import FakeMessagingProvider
 from apps.shared.enums import MessageStatus
 from apps.shared.models import Agent, Conversation, Message
@@ -24,7 +25,9 @@ def build_pipeline(conversations=None, messaging=None):
 
     async def resolver(intent, confidence):
         agent = await agents.get_default_active()
-        return agent.name if agent else None
+        if agent is None:
+            return Ruta(decision=Decision.SIN_DESTINO)
+        return Ruta(decision=Decision.AGENTE, agent_name=agent.name)
 
     return MessagePipeline(
         settings=Settings(_env_file=None),

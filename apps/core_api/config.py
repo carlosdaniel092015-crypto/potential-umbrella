@@ -51,6 +51,12 @@ class Settings(BaseSettings):
         "Por ahora solo puedo procesar mensajes de texto. "
         "¿Me lo puedes escribir? Gracias."
     )
+    # Lo que se le dice al cliente cuando su conversación pasa a una persona.
+    # Dejarlo esperando sin aviso es la peor opción.
+    handoff_reply: str = (
+        "Dame un momento, te va a atender una persona del equipo para "
+        "ayudarte mejor con esto."
+    )
 
 
 @lru_cache

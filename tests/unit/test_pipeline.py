@@ -12,6 +12,7 @@ from apps.core_api.services.agent_repository import AgentConfig
 from apps.core_api.services.conversation_service import InboundRegistration, InboundWork
 from apps.core_api.services.llm_service import FakeLLMProvider
 from apps.core_api.services.pipeline import MessagePipeline
+from apps.core_api.services.routing_service import Decision, Ruta
 from apps.core_api.services.ycloud_service import FakeMessagingProvider
 
 AGENT = AgentConfig(
@@ -29,8 +30,11 @@ class FakeConversationService:
         history: list[dict] | None = None,
         anteriores_pendientes: bool = False,
         pendiente: str | None = None,
+        conversation_status: str = "active",
     ) -> None:
         self.pendiente = pendiente
+        self.conversation_status = conversation_status
+        self.ultimo = None
         self.already_processed = already_processed
         self.created = created
         self.claim_ok = claim_ok
@@ -49,6 +53,9 @@ class FakeConversationService:
         return self.pendiente
 
     async def register_inbound(self, incoming: IncomingMessage) -> InboundRegistration:
+        # Se recuerda lo registrado para que `load_work` devuelva ese mensaje,
+        # igual que hace el servicio real al rehidratar desde la base.
+        self.ultimo = incoming
         return InboundRegistration(
             conversation_id=1,
             message_id=10,
@@ -69,12 +76,14 @@ class FakeConversationService:
         return 20, self.ya_respondido
 
     async def load_work(self, message_id: int) -> InboundWork | None:
+        ultimo = getattr(self, "ultimo", None)
         return InboundWork(
             message_id=message_id,
             conversation_id=1,
-            contact_phone="+5215550001111",
-            message_type="text",
-            content="quiero un pedido",
+            contact_phone=ultimo.contact_phone if ultimo else "+5215550001111",
+            message_type=ultimo.type if ultimo else "text",
+            content=ultimo.content if ultimo else "quiero un pedido",
+            conversation_status=self.conversation_status,
         )
 
     async def recent_history(self, conversation_id, limit=10, exclude_message_id=0):
@@ -92,6 +101,9 @@ class FakeConversationService:
 
     async def mark_inbound_failed(self, message_id):
         self.marks.append(("failed", message_id))
+
+    async def escalar_a_persona(self, conversation_id, motivo, trace_id=""):
+        self.marks.append(("escalada", conversation_id, motivo))
 
 
 class FakeAgentRepository:
@@ -118,7 +130,9 @@ def build_pipeline(
 
     async def resolver(intent, confidence):
         found = await repo.get_default_active()
-        return found.name if found else None
+        if found is None:
+            return Ruta(decision=Decision.SIN_DESTINO)
+        return Ruta(decision=Decision.AGENTE, agent_name=found.name)
 
     pipeline = MessagePipeline(
         settings=Settings(_env_file=None),

@@ -16,6 +16,7 @@ from apps.core_api.services.agent_repository import AgentRepository
 from apps.core_api.services.conversation_service import ConversationService
 from apps.core_api.services.llm_service import FakeLLMProvider
 from apps.core_api.services.pipeline import MessagePipeline
+from apps.core_api.services.routing_service import Decision, Ruta
 from apps.core_api.services.ycloud_service import FakeMessagingProvider
 from apps.shared.enums import MessageStatus
 from apps.shared.models import Agent, Contact, Conversation, Message
@@ -44,7 +45,9 @@ def entorno():
 
     async def resolver(intent, confidence):
         agent = await agents.get_default_active()
-        return agent.name if agent else None
+        if agent is None:
+            return Ruta(decision=Decision.SIN_DESTINO)
+        return Ruta(decision=Decision.AGENTE, agent_name=agent.name)
 
     pipeline = MessagePipeline(
         settings=settings,
@@ -215,7 +218,9 @@ def test_fallo_del_proveedor_da_500_para_que_ycloud_reintente(ycloud_inbound_tex
 
     async def resolver(intent, confidence):
         agent = await agents.get_default_active()
-        return agent.name if agent else None
+        if agent is None:
+            return Ruta(decision=Decision.SIN_DESTINO)
+        return Ruta(decision=Decision.AGENTE, agent_name=agent.name)
 
     pipeline = MessagePipeline(
         settings=settings,

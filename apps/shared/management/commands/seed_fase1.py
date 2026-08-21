@@ -1,8 +1,12 @@
-"""Crea el agente único de la Fase 1 si no existe: `python manage.py seed_fase1`."""
+"""Siembra el agente y las reglas de enrutamiento: `python manage.py seed_fase1`.
+
+Idempotente: se puede correr las veces que sea.
+"""
 
 from django.core.management.base import BaseCommand
 
-from apps.shared.models import Agent
+from apps.core_api.graphs.classifiers import INTENCIONES
+from apps.shared.models import Agent, RoutingRule
 
 DEFAULT_SYSTEM_PROMPT = """Eres el asistente de ventas de Sued Fargesa por WhatsApp.
 Atiendes a vendedores que consultan y levantan pedidos.
@@ -15,20 +19,67 @@ Reglas:
 - Si el cliente pide hablar con una persona, indícale que un humano continuará la conversación.
 """
 
+# Confianza mínima por intención. Más alta donde equivocarse cuesta más:
+#
+# - `hablar_con_humano`: si el cliente pide una persona, no hay margen para
+#   adivinar. Con 0.99 en la práctica siempre pasa a una persona, que es
+#   justamente lo que pidió.
+# - `soporte`: un reclamo mal atendido por un bot enfada más que la avería.
+# - `pedido`: escribe en el negocio; conviene estar seguro.
+# - `fuera_de_dominio`: incluye los intentos de manipulación del prompt. Una
+#   persona decide qué hacer con eso.
+# - Consultas y saludo: equivocarse cuesta poco y se corrige en el siguiente
+#   mensaje, así que el listón es bajo.
+UMBRALES = {
+    "hablar_con_humano": 0.99,
+    "soporte": 0.85,
+    "fuera_de_dominio": 0.99,
+    "pedido": 0.7,
+    "estado_pedido": 0.6,
+    "consulta_precio": 0.5,
+    "consulta_stock": 0.5,
+    "saludo": 0.4,
+}
+
 
 class Command(BaseCommand):
-    help = "Siembra el agente por defecto de la Fase 1 (idempotente)."
+    help = "Siembra el agente por defecto y las reglas de enrutamiento (idempotente)."
 
     def handle(self, *args, **options):
-        agent, created = Agent.objects.get_or_create(
+        agent, creado = Agent.objects.get_or_create(
             name="ventas",
             defaults={
-                "description": "Agente único de Fase 1: atención de pedidos por WhatsApp.",
+                "description": "Agente de ventas: pedidos y consultas por WhatsApp.",
                 "system_prompt": DEFAULT_SYSTEM_PROMPT,
                 "is_active": True,
             },
         )
-        if created:
-            self.stdout.write(self.style.SUCCESS(f"Agente '{agent.name}' creado."))
-        else:
-            self.stdout.write(f"Agente '{agent.name}' ya existía; sin cambios.")
+        self.stdout.write(
+            self.style.SUCCESS(f"Agente '{agent.name}' creado.")
+            if creado
+            else f"Agente '{agent.name}' ya existía; sin cambios."
+        )
+
+        nuevas = 0
+        for intent in INTENCIONES:
+            _, hecha = RoutingRule.objects.get_or_create(
+                intent=intent,
+                is_active=True,
+                defaults={"agent": agent, "min_confidence": UMBRALES.get(intent, 0.6)},
+            )
+            nuevas += int(hecha)
+
+        # Comodín: cualquier intención sin regla propia. Con umbral alto, porque
+        # no saber qué quiere el cliente es motivo para que lo vea una persona.
+        _, comodin = RoutingRule.objects.get_or_create(
+            intent="*",
+            is_active=True,
+            defaults={"agent": agent, "min_confidence": 0.9},
+        )
+        nuevas += int(comodin)
+
+        self.stdout.write(
+            self.style.SUCCESS(f"{nuevas} reglas de enrutamiento creadas.")
+            if nuevas
+            else "Las reglas de enrutamiento ya existían; sin cambios."
+        )

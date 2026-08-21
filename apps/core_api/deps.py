@@ -9,6 +9,7 @@ from apps.core_api.services.conversation_service import ConversationService
 from apps.core_api.services.llm_service import build_llm_provider
 from apps.core_api.services.pipeline import MessagePipeline
 from apps.core_api.services.providers import MessagingProvider
+from apps.core_api.services.routing_service import RoutingService
 from apps.core_api.services.ycloud_service import (
     FakeMessagingProvider,
     YCloudMessagingProvider,
@@ -31,18 +32,13 @@ def build_messaging_provider(settings: Settings) -> MessagingProvider:
 
 def build_default_pipeline(settings: Settings) -> MessagePipeline:
     agents = AgentRepository()
-
-    async def resolve_agent(intent: str, confidence: float) -> str | None:
-        # Fase 1: agente único. Fase 2: reglas intent→agente desde Configuration
-        # + umbral de confianza con fallback a humano.
-        agent = await agents.get_default_active()
-        return agent.name if agent else None
+    routing = RoutingService()
 
     return MessagePipeline(
         settings=settings,
         conversations=ConversationService(),
         agents=agents,
-        router=AgentRouter(RuleBasedClassifier(), resolve_agent),
+        router=AgentRouter(RuleBasedClassifier(), routing.resolver),
         llm=build_llm_provider(settings),
         messaging=build_messaging_provider(settings),
     )

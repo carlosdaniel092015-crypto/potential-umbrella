@@ -74,6 +74,46 @@ class AgentPromptHistory(models.Model):
         verbose_name_plural = "agent prompt histories"
 
 
+class RoutingRule(models.Model):
+    """Qué agente atiende cada intención, y con cuánta confianza mínima.
+
+    Vive en la base y se edita desde el panel: cambiar a qué agente va una
+    intención, o subir el listón de confianza de una intención delicada, no
+    debería requerir desplegar código.
+    """
+
+    intent = models.CharField(
+        max_length=50,
+        help_text="Intención del catálogo, o * para el resto de los casos.",
+    )
+    agent = models.ForeignKey(Agent, on_delete=models.PROTECT, related_name="rules")
+    min_confidence = models.FloatField(
+        default=0.5,
+        help_text=(
+            "Por debajo de esta confianza la conversación pasa a una persona "
+            "en lugar de responderse. Súbelo en las intenciones donde "
+            "equivocarse cuesta."
+        ),
+    )
+    is_active = models.BooleanField(default=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            # Una sola regla activa por intención: dos reglas activas para la
+            # misma intención harían que el agente elegido dependiera del orden
+            # en que la base devuelva las filas.
+            models.UniqueConstraint(
+                fields=["intent"],
+                condition=models.Q(is_active=True),
+                name="una_regla_activa_por_intencion",
+            )
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.intent} → {self.agent_id} (≥{self.min_confidence})"
+
+
 class Conversation(models.Model):
     contact = models.ForeignKey(Contact, on_delete=models.CASCADE, related_name="conversations")
     agent = models.ForeignKey(

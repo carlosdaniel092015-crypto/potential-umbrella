@@ -17,7 +17,7 @@ from django.utils import timezone
 
 from apps.core_api.schemas.messages import IncomingMessage
 from apps.shared.enums import ConversationStatus, MessageDirection, MessageStatus
-from apps.shared.models import Contact, Conversation, Message
+from apps.shared.models import Contact, Conversation, Message, TraceEvent
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +49,7 @@ class InboundWork:
     contact_phone: str
     message_type: str
     content: str
+    conversation_status: str = ConversationStatus.ACTIVE
 
 
 class ConversationService:
@@ -274,6 +275,7 @@ class ConversationService:
             contact_phone=row.conversation.contact.phone,
             message_type=row.message_type,
             content=row.content,
+            conversation_status=row.conversation.status,
         )
 
     async def load_work(self, message_id: int) -> InboundWork | None:
@@ -339,6 +341,28 @@ class ConversationService:
 
     async def texto_pendiente(self, inbound_id: int) -> str | None:
         return await sync_to_async(self._texto_pendiente_sync)(inbound_id)
+
+    @staticmethod
+    def _escalar_sync(conversation_id: int, motivo: str, trace_id: str) -> None:
+        Conversation.objects.filter(id=conversation_id).exclude(
+            status=ConversationStatus.CLOSED
+        ).update(status=ConversationStatus.ESCALATED)
+        TraceEvent.objects.create(
+            conversation_id=conversation_id,
+            trace_id=trace_id,
+            event_type="escalada_a_persona",
+            payload={"motivo": motivo},
+        )
+
+    async def escalar_a_persona(
+        self, conversation_id: int, motivo: str, trace_id: str = ""
+    ) -> None:
+        """Pasa la conversación a una persona y lo deja registrado.
+
+        Desde este momento el bot no vuelve a responder en ella hasta que
+        alguien la devuelva a la IA desde el panel.
+        """
+        await sync_to_async(self._escalar_sync)(conversation_id, motivo, trace_id)
 
     @staticmethod
     def _recent_history_sync(conversation_id: int, limit: int, exclude_message_id: int) -> list:
