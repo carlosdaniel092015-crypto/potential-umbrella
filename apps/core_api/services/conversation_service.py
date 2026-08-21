@@ -11,7 +11,8 @@ from typing import Any
 
 from asgiref.sync import sync_to_async
 from django.db import IntegrityError, connection, transaction
-from django.db.models import Q
+from django.db.models import Case, IntegerField, Q, Value, When
+from django.db.models.functions import Coalesce
 from django.utils import timezone
 
 from apps.core_api.schemas.messages import IncomingMessage
@@ -161,17 +162,38 @@ class ConversationService:
           cliente recibiría las respuestas al revés.
         """
         limite = timezone.now() - timedelta(minutes=margen_minutos)
-        propio = Message.objects.filter(id=message_id).values_list("seq", flat=True).first()
+        # La posición se lee validando que el mensaje pertenezca a esta
+        # conversación: solo es comparable dentro de ella.
+        propia = list(
+            Message.objects.filter(
+                id=message_id, conversation_id=conversation_id
+            ).values_list("seq", flat=True)[:1]
+        )
+        if not propia:
+            logger.warning(
+                "El mensaje %s no pertenece a la conversación %s: no se calcula turno",
+                message_id,
+                conversation_id,
+            )
+            return False
+
+        propio = propia[0]
         anteriores = Message.objects.filter(
             conversation_id=conversation_id,
             direction=MessageDirection.INBOUND,
-        )
+        ).exclude(id=message_id)
         if propio is None:
-            # Mensaje sin posición asignada (registrado antes de que existiera
-            # el contador): se cae al id, que es lo que había.
+            # Este mensaje no tiene posición (quedó de antes del contador): se
+            # ordena por id, que es lo que había.
             anteriores = anteriores.filter(id__lt=message_id)
         else:
-            anteriores = anteriores.filter(seq__lt=propio)
+            # `NULL < n` es NULL en SQL, no verdadero: sin la rama explícita, un
+            # mensaje sin posición sería invisible y su sucesor le responderría
+            # antes. Una posición ausente cuenta siempre como anterior, porque
+            # el contador solo reparte hacia adelante.
+            anteriores = anteriores.filter(
+                Q(seq__lt=propio) | Q(seq__isnull=True)
+            )
         sin_empezar = anteriores.filter(
             status__in=[MessageStatus.RECEIVED, MessageStatus.FAILED]
         )
@@ -290,8 +312,12 @@ class ConversationService:
         # Solo entra en el historial lo que el cliente vio de verdad: una
         # respuesta que quedó sin enviar no es parte de la conversación, y
         # metida en el prompt hace que el bot dé por leído lo que nunca llegó.
-        # Se ordena por id y no por created_at: dos filas del mismo lote de
-        # webhooks pueden compartir marca de tiempo y quedar en orden indefinido.
+        #
+        # Se ordena por la posición del turno, con el id como desempate. Ordenar
+        # por id sería incoherente: si el id no basta para decidir el turno
+        # (porque es orden de INSERT y no de COMMIT), tampoco basta para decidir
+        # en qué orden ve el modelo la conversación. Un saliente hereda la
+        # posición del entrante que contesta, así queda justo detrás de él.
         rows = (
             Message.objects.filter(conversation_id=conversation_id)
             .filter(
@@ -299,7 +325,15 @@ class ConversationService:
                 | Q(direction=MessageDirection.OUTBOUND, status=MessageStatus.SENT)
             )
             .exclude(id=exclude_message_id)
-            .order_by("-id")[:limit]
+            .annotate(
+                orden=Coalesce("seq", "reply_to__seq"),
+                es_respuesta=Case(
+                    When(direction=MessageDirection.OUTBOUND, then=Value(1)),
+                    default=Value(0),
+                    output_field=IntegerField(),
+                ),
+            )
+            .order_by("-orden", "-es_respuesta", "-id")[:limit]
         )
         history = [
             {

@@ -151,7 +151,11 @@ class Message(models.Model):
 
     class Meta:
         ordering = ["created_at"]
-        indexes = [models.Index(fields=["conversation", "created_at"])]
+        indexes = [
+            models.Index(fields=["conversation", "created_at"]),
+            # El turno filtra por conversación y posición en cada mensaje.
+            models.Index(fields=["conversation", "seq"]),
+        ]
         constraints = [
             # Como máximo una respuesta por mensaje entrante. Crear la fila ES
             # el derecho a responder: si dos ejecuciones concurrentes llegan
@@ -160,7 +164,18 @@ class Message(models.Model):
                 fields=["reply_to"],
                 condition=models.Q(direction=MessageDirection.OUTBOUND),
                 name="una_respuesta_por_mensaje_entrante",
-            )
+            ),
+            # Dos entrantes con la misma posición no serían anteriores el uno al
+            # otro, así que ambos se procesarían a la vez y sin ninguna señal.
+            # Hoy el reparto bajo bloqueo lo evita, pero eso es una promesa del
+            # código; esto lo garantiza la base.
+            models.UniqueConstraint(
+                fields=["conversation", "seq"],
+                condition=models.Q(
+                    direction=MessageDirection.INBOUND, seq__isnull=False
+                ),
+                name="una_posicion_por_conversacion",
+            ),
         ]
 
     def __str__(self) -> str:

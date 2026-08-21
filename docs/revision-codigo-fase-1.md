@@ -65,6 +65,26 @@ misma ráfaga sí recibe la suya. Cinco pruebas nuevas cubren la ráfaga en orde
 producción, la atadura respuesta→mensaje, el reintento del mismo mensaje y el
 reintento tras fallo de envío.
 
+## Cuarta ronda: el arreglo del arreglo del arreglo
+
+El orden por posición (D-34) volvió a pasar por revisión adversarial, que
+reprodujo otros nueve defectos. El más grave anulaba el arreglo entero en
+cualquier base que ya tuviera datos.
+
+| Defecto | Por qué era grave | Corrección |
+|---|---|---|
+| **La migración añadía la posición sin rellenarla** | En SQL `NULL < n` no es verdadero, así que los mensajes anteriores al contador eran **invisibles** para los nuevos, que les responderían antes. Sobre una base con datos, el arreglo del orden quedaba desactivado — la misma inversión que perseguía, reintroducida por la puerta de atrás, y no solo durante el despliegue: mientras quedara un entrante sin procesar sin posición. | Relleno de datos en la migración, y la comparación cuenta una posición ausente como anterior. Verificado aplicando las migraciones sobre una base construida al esquema antiguo con filas heredadas. |
+| **Nada impedía dos posiciones iguales** | Con la misma posición, ninguno de los dos mensajes es anterior al otro, así que ambos se procesan a la vez y sin señal alguna. El reparto correcto era una promesa del código, no una garantía de la base. Y el contador había quedado **editable en el panel de administración**, que escribe fuera del bloqueo. | Restricción única de posición por conversación, más índice para la consulta del turno. El contador es de solo lectura en el panel. |
+| **La prueba que decía verificar el bloqueo fallaba justo donde el bloqueo existe** | Compilar la consulta con `select_for_update` fuera de una transacción lanza excepción: en SQLite la rama no se ejecutaba (código muerto) y en Postgres el test habría fallado. Lo único que comprobaba de verdad es que la función se llamaba. | La aserción se hace dentro de una transacción. |
+| **La posición no se validaba contra su conversación** | Solo es comparable dentro de una conversación, y una consulta sin filtrar podía cruzar mensajes de dos clientes distintos. Además no distinguía «sin posición» de «el mensaje no existe». | Se lee validando la pertenencia, y un mensaje ajeno se registra en el log en lugar de tragarse. |
+| **El historial seguía ordenando por id** | Incoherencia de fondo: si el id no basta para decidir el turno, tampoco basta para decidir en qué orden ve el modelo la conversación. O sirve o no sirve. | El historial ordena por la misma posición, con el saliente justo detrás del entrante que contesta. |
+
+**Sigue abierto** y consta como pendiente: la espera del bloqueo no tiene tope,
+y como todas las operaciones de base de la API pasan por un único hilo, una
+transacción ajena que retenga el bloqueo detendría la API entera en vez de fallar
+una petición. Necesita `lock_timeout` en la conexión de Postgres y traducir ese
+fallo a 503. También queda revalidar el estado de la conversación al bloquearla.
+
 ## Tercera ronda: la revisión del propio arreglo
 
 El turno por conversación (D-28) pasó por una revisión adversarial que reprodujo

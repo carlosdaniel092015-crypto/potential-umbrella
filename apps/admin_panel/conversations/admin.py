@@ -33,6 +33,11 @@ class ConversationAdmin(admin.ModelAdmin):
     list_display = ("contact", "channel", "status", "agent", "last_inbound_at", "updated_at")
     list_filter = ("channel", "status")
     inlines = [MessageInline]
+    # El contador de posiciones se reparte bajo bloqueo en el registro de
+    # mensajes. Editable desde aquí, un guardado escribiría el valor leído en el
+    # GET y podría repetir una posición ya usada, con lo que dos mensajes
+    # dejarían de ser anteriores el uno al otro.
+    readonly_fields = ("next_seq", "last_inbound_at")
 
 
 @admin.register(Message)

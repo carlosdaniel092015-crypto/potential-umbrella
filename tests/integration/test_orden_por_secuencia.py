@@ -67,9 +67,11 @@ def test_el_turno_usa_la_posicion_y_no_el_id(servicio):
     r1 = async_to_sync(servicio.register_inbound)(entrante("wamid.S1"))
     r2 = async_to_sync(servicio.register_inbound)(entrante("wamid.S2"))
 
-    # Posiciones invertidas respecto a los ids.
-    Message.objects.filter(id=r1.message_id).update(seq=2)
+    # Posiciones invertidas respecto a los ids. Se pasa por un valor libre
+    # porque la restricción única no permite pisar una posición ocupada.
+    Message.objects.filter(id=r1.message_id).update(seq=999)
     Message.objects.filter(id=r2.message_id).update(seq=1)
+    Message.objects.filter(id=r1.message_id).update(seq=2)
 
     # El de id menor (posición 2) ahora tiene un predecesor: el de id mayor.
     espera_el_primero = async_to_sync(servicio.tiene_anteriores_pendientes)(
