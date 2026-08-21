@@ -87,6 +87,15 @@ def _database_config() -> dict:
         "PASSWORD": os.environ.get("DB_PASSWORD", ""),
         "HOST": os.environ.get("DB_HOST", "localhost"),
         "PORT": os.environ.get("DB_PORT", "5432"),
+        "OPTIONS": {
+            # Tope a la espera de un bloqueo. El registro de un mensaje bloquea
+            # la fila de su conversación, y todas las operaciones de base de la
+            # API comparten un único hilo: sin tope, una transacción ajena que
+            # retenga ese bloqueo (una tarea muerta, una sesión abierta, un
+            # migrate) detendría la API entera en lugar de fallar una petición.
+            # Se prefiere fallar rápido y que el proveedor reintente.
+            "options": f"-c lock_timeout={os.environ.get('DB_LOCK_TIMEOUT_MS', '3000')}",
+        },
     }
 
 

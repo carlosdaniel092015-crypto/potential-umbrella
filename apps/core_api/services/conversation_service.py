@@ -10,7 +10,7 @@ from datetime import timedelta
 from typing import Any
 
 from asgiref.sync import sync_to_async
-from django.db import IntegrityError, connection, transaction
+from django.db import IntegrityError, OperationalError, connection, transaction
 from django.db.models import Case, IntegerField, Q, Value, When
 from django.db.models.functions import Coalesce
 from django.utils import timezone
@@ -20,6 +20,15 @@ from apps.shared.enums import ConversationStatus, MessageDirection, MessageStatu
 from apps.shared.models import Contact, Conversation, Message
 
 logger = logging.getLogger(__name__)
+
+
+class ConversacionNoDisponible(RuntimeError):
+    """La conversación no se pudo tomar para registrar el mensaje: alguien
+    retiene su bloqueo más de lo tolerado, o se cerró mientras se registraba.
+
+    El webhook lo traduce a 503 para que el proveedor reintente, en lugar de
+    dejar el mensaje sin registrar con un 200 o tumbar la petición con un 500.
+    """
 
 
 @dataclass
@@ -71,19 +80,34 @@ class ConversationService:
 
     @staticmethod
     def _bloquear_conversacion(conversation_id: int) -> Conversation:
-        """Toma la fila de la conversación en exclusiva.
+        """Toma la fila de la conversación en exclusiva, y revalida que siga
+        abierta.
 
         Serializa el registro de mensajes de un mismo contacto: el segundo
         webhook espera a que el primero confirme, así que la posición que se
-        reparte a continuación respeta el orden real. En SQLite el bloqueo de
-        fila no existe, pero el motor ya serializa las escrituras, de modo que
-        el reparto es igual de seguro; en Postgres hace falta el bloqueo
-        explícito.
+        reparte a continuación respeta el orden real.
+
+        Se revalida el estado porque la conversación se eligió antes del
+        bloqueo: si alguien la cerró en medio, colgar el mensaje de ella
+        partiría el historial en dos.
+
+        En SQLite no hay bloqueo de fila. El reparto sigue siendo correcto
+        porque el motor rechaza la segunda escritura concurrente en lugar de
+        permitir un valor repetido, pero la garantía viene de ahí, no de una
+        serialización ordenada.
         """
-        query = Conversation.objects.filter(id=conversation_id)
+        query = Conversation.objects.filter(id=conversation_id).exclude(
+            status=ConversationStatus.CLOSED
+        )
         if connection.features.has_select_for_update:
             query = query.select_for_update()
-        return query.get()
+        try:
+            return query.get()
+        except Conversation.DoesNotExist as exc:
+            # Se cerró o desapareció entre la búsqueda y el bloqueo.
+            raise ConversacionNoDisponible(
+                f"La conversación {conversation_id} dejó de estar disponible"
+            ) from exc
 
     @staticmethod
     def _register_inbound_sync(incoming: IncomingMessage) -> InboundRegistration:
@@ -138,7 +162,16 @@ class ConversationService:
         )
 
     async def register_inbound(self, incoming: IncomingMessage) -> InboundRegistration:
-        return await sync_to_async(self._register_inbound_sync)(incoming)
+        try:
+            return await sync_to_async(self._register_inbound_sync)(incoming)
+        except OperationalError as exc:
+            # Con `lock_timeout` configurado, una espera excesiva por el bloqueo
+            # de la conversación llega aquí. Fallar rápido y que el proveedor
+            # reintente es mejor que retener el único hilo del ORM.
+            logger.warning(
+                "No se pudo registrar el mensaje %s: %s", incoming.external_id, exc
+            )
+            raise ConversacionNoDisponible(str(exc)) from exc
 
     @staticmethod
     def _anteriores_pendientes_sync(

@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 
 from apps.core_api.config import Settings, get_settings
 from apps.core_api.deps import get_pipeline
+from apps.core_api.services.conversation_service import ConversacionNoDisponible
 from apps.core_api.services.pipeline import MessagePipeline
 from apps.core_api.services.ycloud_service import parse_incoming_message, verify_signature
 
@@ -65,6 +66,19 @@ async def receive_whatsapp(
         # invocar el pipeline, para que YCloud no reintente.
         return {"status": "ignored"}
 
+    try:
+        return await _procesar(incoming, settings, pipeline)
+    except ConversacionNoDisponible as exc:
+        # No se pudo tomar la conversación (bloqueo retenido, o se cerró en
+        # medio). Un 503 hace que el proveedor reintente; un 200 perdería el
+        # mensaje y un 500 daría a entender un fallo del sistema.
+        logger.warning("Conversación no disponible: %s", exc)
+        raise HTTPException(
+            status_code=503, detail="La conversación no está disponible ahora mismo"
+        ) from exc
+
+
+async def _procesar(incoming, settings: Settings, pipeline: MessagePipeline):
     if settings.processing_mode == "celery":
         # ACK rápido (§1.1 event-driven): se persiste y deduplica aquí, y a la
         # cola solo va el id — nunca el teléfono ni el texto del cliente.
