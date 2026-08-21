@@ -49,6 +49,9 @@ class FakeConversationService:
     ) -> bool:
         return self.anteriores_pendientes
 
+    async def estado_actual(self, conversation_id: int) -> str | None:
+        return self.conversation_status
+
     async def texto_pendiente(self, inbound_id: int) -> str | None:
         return self.pendiente
 

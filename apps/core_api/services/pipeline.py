@@ -148,6 +148,27 @@ class MessagePipeline:
             await self._conversations.mark_inbound_processed(work.message_id)
             return PipelineResult(status="no_agent", conversation_id=work.conversation_id)
 
+        if agent_config is not None:
+            # `work.conversation_status` es una foto de ANTES de generar la
+            # respuesta: componerla con el LLM tarda segundos de red real, y en
+            # ese hueco una persona puede tomar la conversación (desde el panel,
+            # o porque otro mensaje la escaló). Un aviso de traspaso (agent_config
+            # es None) siempre debe salir — es la razón de ser del traspaso—,
+            # pero una respuesta ORDINARIA del agente que ya no aplica no debe
+            # escribirse encima de lo que la persona acaba de decir.
+            estado_actual = await self._conversations.estado_actual(work.conversation_id)
+            if estado_actual == ConversationStatus.ESCALATED:
+                logger.info(
+                    "La conversación %s pasó a una persona mientras se generaba "
+                    "la respuesta al mensaje %s: se descarta sin enviar",
+                    work.conversation_id,
+                    work.message_id,
+                )
+                await self._conversations.mark_inbound_processed(work.message_id)
+                return PipelineResult(
+                    status="atendida_por_persona", conversation_id=work.conversation_id
+                )
+
         agent_id = agent_config.id if agent_config else None
         # El reclamo va atado a ESTE entrante: es lo que distingue un reintento
         # del mismo mensaje (no se reenvía) de otro mensaje de la misma ráfaga

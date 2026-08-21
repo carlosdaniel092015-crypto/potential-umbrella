@@ -100,6 +100,29 @@ Verificado con tres tests en `tests/integration/test_aviso_traspaso_reintento.py
 el reintento reenvía el aviso, no escala dos veces, y un mensaje sin aviso
 propio sigue callado.
 
+## Tercera pasada: el bot podía escribir encima de una persona a media generación
+
+Confirmado y corregido. `work.conversation_status` es una foto tomada al
+rehidratar el mensaje, ANTES de llamar al modelo — y componer una respuesta con
+un LLM real tarda segundos de red. En ese hueco, una persona puede tomar la
+conversación (desde el panel, o porque otro mensaje del mismo cliente la
+escaló por su cuenta). Sin revalidar, la respuesta del bot —generada con
+información ya vieja— se enviaba igual, encima de lo que la persona acababa de
+decir: exactamente lo que el traspaso existe para evitar.
+
+Arreglo: justo antes de escribir, si la respuesta es de un AGENTE (no un aviso
+de traspaso propio — un aviso siempre debe salir, es la razón de ser de la
+escalada), se relee el estado de la conversación con una consulta fresca, no
+la foto inicial. Si ya está escalada, la respuesta se descarta sin enviar y sin
+dejar rastro como saliente; el mensaje entrante queda procesado igual, sin
+bloquear el turno de los siguientes.
+
+Verificado con tres tests en
+`tests/integration/test_carrera_escalado_mid_generacion.py`: la respuesta
+generada durante el traspaso se descarta, el camino normal sin carrera sigue
+funcionando, y el propio aviso de traspaso no se bloquea a sí mismo por la
+escalada que él mismo acaba de causar.
+
 ## Lo que la revisión encontró y NO se arregló todavía
 
 Confirmados como reales pero no corregidos en esta pasada (por alcance y
@@ -107,8 +130,6 @@ tiempo, no por desacuerdo con el hallazgo):
 
 | Severidad | Hallazgo |
 |---|---|
-| Alta | El bot puede escribir después de que una persona tome la conversación si el traspaso ocurre mientras el modelo está generando la respuesta (segundos): el estado se lee una vez al principio y no se revalida antes de enviar. |
-
 | Alta | `escalar_a_persona` no es idempotente: no hay resguardo explícito contra dos llamadas para el mismo traspaso. |
 | Alta | `seed_fase1` no es idempotente frente a ediciones del panel: puede resucitar reglas que alguien apagó a mano. |
 | Media | Apagar un agente no deja de enrutar hacia su intención: cae al comodín, que puede tener otro agente y otro umbral, sin dejar rastro de que cambió. |

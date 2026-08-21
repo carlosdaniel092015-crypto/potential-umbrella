@@ -343,6 +343,21 @@ class ConversationService:
         return await sync_to_async(self._texto_pendiente_sync)(inbound_id)
 
     @staticmethod
+    def _estado_actual_sync(conversation_id: int) -> str | None:
+        return (
+            Conversation.objects.filter(id=conversation_id)
+            .values_list("status", flat=True)
+            .first()
+        )
+
+    async def estado_actual(self, conversation_id: int) -> str | None:
+        """Lectura fresca del estado, sin caché ni foto previa. `InboundWork`
+        trae el estado de cuando se rehidrató el trabajo; componer una
+        respuesta con el LLM tarda segundos, así que ese valor puede haber
+        quedado obsoleto para cuando toca decidir si se envía."""
+        return await sync_to_async(self._estado_actual_sync)(conversation_id)
+
+    @staticmethod
     def _escalar_sync(conversation_id: int, motivo: str, trace_id: str) -> None:
         Conversation.objects.filter(id=conversation_id).exclude(
             status=ConversationStatus.CLOSED
