@@ -69,12 +69,22 @@ class Command(BaseCommand):
             )
             nuevas += int(hecha)
 
-        # Comodín: cualquier intención sin regla propia. Con umbral alto, porque
-        # no saber qué quiere el cliente es motivo para que lo vea una persona.
+        # Comodín: cualquier intención sin regla propia (incluida `general`,
+        # el mensaje que el clasificador no reconoce). Umbral 0, a propósito:
+        # RuleBasedClassifier es la red de seguridad "para cuando el LLM
+        # falla" (ver su docstring) y hoy es el ÚNICO clasificador en
+        # producción, así que "no reconocido" ocurre en una fracción grande
+        # de los mensajes (macro-F1 0.512, ver medicion-enrutamiento.md) — no
+        # es una señal deliberada de negocio como sí lo es hablar_con_humano o
+        # fuera_de_dominio. Un umbral alto aquí escalaba la conversación
+        # ENTERA de forma permanente ante cualquier mensaje sin palabra clave
+        # reconocida, incluido el primero. El agente responde con su propio
+        # prompt («si no tienes un dato, dilo; nunca inventes»), que ya es la
+        # contención adecuada para la incertidumbre genuina.
         _, comodin = RoutingRule.objects.get_or_create(
             intent="*",
             is_active=True,
-            defaults={"agent": agent, "min_confidence": 0.9},
+            defaults={"agent": agent, "min_confidence": 0.0},
         )
         nuevas += int(comodin)
 

@@ -67,3 +67,45 @@ def test_precedencia_estado_sobre_pedido_nuevo(classifier):
 
 def test_todas_las_intenciones_declaradas_tienen_reglas():
     assert set(INTENCIONES) == set(RuleBasedClassifier.KEYWORDS)
+
+
+@pytest.mark.parametrize(
+    "texto",
+    [
+        "listo, sin problema",
+        "ningun problema",
+        "no hay problema con eso",
+        "no es problema, lo resuelvo",
+        "SIN PROBLEMA, quedamos asi",
+    ],
+)
+def test_problema_negado_no_es_un_reclamo(classifier, texto):
+    """«sin problema» escalaba la conversación entera como si fuera una queja:
+    la palabra suelta no distingue negación (hallazgo de revisión adversarial)."""
+    intent, _ = classifier.classify(texto)
+    assert intent != "soporte"
+
+
+def test_problema_sin_negar_sigue_siendo_reclamo(classifier):
+    """La neutralización de negaciones no debe tragarse el reclamo real."""
+    intent, _ = classifier.classify("hay un problema con el producto que llego")
+    assert intent == "soporte"
+
+
+def test_sin_problema_pero_con_reclamo_real_se_atiende_como_reclamo(classifier):
+    """«sin problema» no debe blanquear un reclamo que viene justo después."""
+    intent, _ = classifier.classify("sin problema, pero llego dañado el paquete")
+    assert intent == "soporte"
+
+
+def test_falto_agregar_no_es_un_reclamo(classifier):
+    """En este dominio, «me falto agregar X» es el vendedor corrigiendo su
+    propio pedido, no una queja por algo que faltó en la entrega."""
+    intent, _ = classifier.classify("me falto agregar 2 cajas al pedido")
+    assert intent != "soporte"
+
+
+def test_faltaron_en_plural_sigue_siendo_reclamo(classifier):
+    """«me faltaron» (cantidad recibida de menos) sigue cubierto."""
+    intent, _ = classifier.classify("me faltaron 3 cajas del pedido de ayer")
+    assert intent == "soporte"

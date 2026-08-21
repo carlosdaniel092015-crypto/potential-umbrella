@@ -2,7 +2,8 @@
 
 Sistema de IA conversacional multiagente para WhatsApp (pedidos de vendedores),
 según el [documento técnico integral](docs/documento-tecnico-integral.md).
-Estado: **Fase 1** — infraestructura base + webhook WhatsApp + 1 agente.
+Estado: **Fase 2 en curso** — Fase 1 completa (webhook, pipeline, un agente);
+el Determinador ya enruta a varios agentes por reglas y traspasa a personas.
 
 ## Arquitectura (resumen)
 
@@ -19,7 +20,10 @@ Estado: **Fase 1** — infraestructura base + webhook WhatsApp + 1 agente.
 
 Decisiones y desviaciones respecto al documento: [docs/decisiones-fase-1.md](docs/decisiones-fase-1.md).
 Revisión del documento (46 hallazgos): [docs/revision-equipo-hallazgos.md](docs/revision-equipo-hallazgos.md).
-Revisión del código (26 hallazgos): [docs/revision-codigo-fase-1.md](docs/revision-codigo-fase-1.md).
+Revisión del código, cuatro rondas adversariales: [docs/revision-codigo-fase-1.md](docs/revision-codigo-fase-1.md).
+Determinador multiagente: [docs/determinador-fase-2.md](docs/determinador-fase-2.md)
+(revisión adversarial y defecto crítico corregido: [docs/revision-enrutamiento-fase-2.md](docs/revision-enrutamiento-fase-2.md)).
+Medición del enrutamiento: [docs/medicion-enrutamiento.md](docs/medicion-enrutamiento.md).
 
 ## Arranque rápido (dev local, sin Docker)
 
@@ -59,8 +63,10 @@ core_api (:8000, modo celery), panel (:8001) y worker.
 uv run python -m pytest --cov --cov-branch
 ```
 
-78 tests (57 unitarios + 21 de integración end-to-end del webhook), 93% de
-cobertura de ramas, 100% offline. `mypy apps/` limpio.
+170 tests (84 unitarios + 73 de integración + 13 de evaluación del
+enrutamiento; 169 pasan, 1 se salta), 100% offline. `mypy apps/` limpio.
+Uno se salta a propósito: el de registro concurrente, que necesita un motor
+con bloqueo de fila (Postgres).
 Nota Windows corporativo: `ruff.exe` puede estar bloqueado por política ASR;
 el lint corre en CI.
 
@@ -75,7 +81,7 @@ Ver [.env.example](.env.example). Claves mínimas de Fase 1: `DJANGO_SECRET_KEY`
 | Fase | Entregable | Estado |
 |---|---|---|
 | 1 | Infra base + webhook WhatsApp + 1 agente | ✅ esqueleto verificado |
-| 2 | Determinador multiagente (LLM, reglas, fallback humano) | interfaz lista |
+| 2 | Determinador multiagente | reglas y traspaso a personas ✅; clasificador con LLM pendiente |
 | 3 | Integración Odoo (pedidos) | contrato `ERPProvider` definido |
 | 4 | Voz (ElevenLabs) | ruta reservada (501) |
 | 5 | Panel conversaciones + auto-entrenamiento | modelos listos |

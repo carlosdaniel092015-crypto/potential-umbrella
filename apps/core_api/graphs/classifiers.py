@@ -36,6 +36,27 @@ def _normalize(text: str) -> str:
     return "".join(c for c in text if not unicodedata.combining(c))
 
 
+# Formas negadas de "problema" que NO son un reclamo. Sin esto, "listo, sin
+# problema" o "ningún problema" se clasifican como queja: la palabra suelta
+# no distingue negación. Se neutralizan antes de buscar palabras clave, no se
+# excluyen del catálogo, para no perder "sin problema, PERO llegó dañado".
+_PROBLEMA_NEGADO = (
+    "sin problema",
+    "ningun problema",
+    "no hay problema",
+    "no es problema",
+    "no tengo problema",
+    "no tiene problema",
+    "no supone problema",
+)
+
+
+def _neutralizar_negaciones(normalized: str) -> str:
+    for frase in _PROBLEMA_NEGADO:
+        normalized = normalized.replace(frase, "")
+    return normalized
+
+
 class RuleBasedClassifier(IntentClassifier):
     """Fase 1 y red de seguridad cuando el LLM falla.
 
@@ -106,9 +127,12 @@ class RuleBasedClassifier(IntentClassifier):
             "roto",
             "caducad",
             "me faltaron",
-            "falto",
             "equivocad",
             "mal estado",
+            # "falto" (sin más) se quitó: en este dominio "me falto agregar
+            # 2 cajas" es el vendedor corrigiendo su propio pedido, no un
+            # reclamo. "me faltaron" (plural, cantidad recibida de menos)
+            # sigue cubriendo el caso real de queja.
         ),
         "pedido": (
             "pedido",
@@ -166,7 +190,7 @@ class RuleBasedClassifier(IntentClassifier):
     }
 
     def classify(self, content: str) -> tuple[str, float]:
-        normalized = _normalize(content)
+        normalized = _neutralizar_negaciones(_normalize(content))
         for intent, keywords in self.KEYWORDS.items():
             if any(kw in normalized for kw in keywords):
                 # Confianza fija y modesta: son reglas, no una estimación real.
