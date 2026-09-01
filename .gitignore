@@ -27,3 +27,6 @@ media/
 .vscode/
 Thumbs.db
 .DS_Store
+
+# Estado local de Claude Code (PID y sesión): cambia solo, no es del proyecto
+.claude/scheduled_tasks.lock
